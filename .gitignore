@@ -2,3 +2,6 @@
 !.claude/agents/
 !.claude/agents/**
 !.claude/settings.json
+
+# Serena removed from the project (#86); ignore the dir if a stale MCP server recreates it
+.serena/
