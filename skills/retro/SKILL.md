@@ -133,6 +133,14 @@ Route each learning to exactly one destination:
 
 **Issue cross-repo**: `gh issue create --repo iamantoniodinuzzo/flutter-toolkit`, con `--repo` **sempre esplicito** — non va mai dedotto dal `git remote` locale, che punta al progetto target, non al toolkit. Sempre "Proposta — aspetta l'ok": aprire una issue pubblica su un altro repo non è mai un default silenzioso. `tune-setup` può produrre la stessa destinazione in modo indipendente, sulla propria evidenza — non c'è canale di handoff tra le due skill.
 
+### Forma della proposta
+
+Queste regole danno forma a una proposta `config` o `knowledge` che ha già il suo evento del transcript; non ne creano una.
+
+1. **Vincolo meccanico → controllo.** Classifica prima la violazione. Meccanica (un tetto numerico, un pattern fisso, un percorso) → la proposta è un hook, uno script o un job CI. Un giudizio → prosa in `CLAUDE.md` o memoria.
+2. **Puntatore prima del contenuto.** Se la regola esisteva e non è scattata, la proposta riformula prima il puntatore, con il caso e la condizione (vedi «Context pointers» in `references/writing-for-agents.md`); sposta il contenuto solo se la riformulazione non basta.
+3. **Regola spostata: prova e ripristino.** Una proposta che sposta una regola da sempre-caricata a skill o on-demand porta `prova:` (una domanda da porre in una sessione nuova, con il comportamento atteso) e `ripristino:` (come tornare indietro).
+
 **Prima di scrivere nella memoria nativa:**
 Usa solo una destinazione offerta dall'agente e autorizzata. Se assente, lascia gli apprendimenti nel report; non creare `MEMORY.md` o altri sostituti. I passi seguenti su `MEMORY.md` si applicano solo alla memoria Claude quando presente.
 1. Leggi `MEMORY.md`. Se una voce esistente copre già il fatto, **aggiorna quel file** (segui il formato già in uso lì — spesso più fatti correlati nello stesso file, separati da `---`) invece di crearne uno nuovo.
@@ -157,6 +165,8 @@ Reported — se la memoria non è disponibile
 Proposed — aspetto il tuo ok (ordinate per severità: bloccante, costoso, attrito, strutturale)
 2. [automation] [strutturale] <pattern ripetuto, con conteggio da Passo 0> → skill spec: <nome>
 3. [environment: tool-economy] [costoso] <evidenza dal blocco Ambiente> → config progetto: <cosa> (repo: <dove atterra | da confermare>)
+   [knowledge] [strutturale] <vincolo meccanico> → hook: <cosa>
+      prova: <domanda in sessione nuova → comportamento atteso> · ripristino: <come tornare indietro>   (solo se sposta una regola)
 
 Issue da aprire — aspetto il tuo ok (max 3, fuori dal cap di Proposed)
 4. [issue] <titolo> — <che cosa deve essere vero a lavoro finito> (da Q3 | da Q2 | da chiusura)
@@ -185,6 +195,8 @@ Un fatto compare **una sola volta** nel report: un punto già in `Proposed`, `Ap
 - **Inventare un fallimento per Q5 che non compare nell'output di Passo 0.**
 - **Scrivere in `CLAUDE.md`, `.claude/rules/`, creare una skill, o aprire una issue (cross-repo o nel repo del progetto) senza ok esplicito.**
 - **Inventare un'azione per riempire `Azione:`**: `nessuna (<motivo>)` è un valore valido.
+- **Proporre prosa per un vincolo meccanico**, o spostare una regola senza aver prima riformulato il puntatore, o senza `prova:` e `ripristino:`.
+- **Giudicare il contenuto dei file di istruzioni quando `global agents.md` si accende**: è l'handoff a `tune-setup` con il comando della riga, non una lettura.
 - **Duplicare una voce di memoria che esiste già invece di aggiornarla.**
 - **Dichiarare "nulla da migliorare" quando Passo 0 ha trovato errori o ripetizioni non ancora spiegati.**
 - **Leggere un file di configurazione del progetto per costruire una proposta ambiente** (è il lavoro di `tune-setup`).

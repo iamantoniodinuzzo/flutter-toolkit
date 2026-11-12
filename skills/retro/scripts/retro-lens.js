@@ -15,6 +15,7 @@ const NAV_EMPTY_SEARCHES = 3; // Grep/Glob with zero results (main thread)
 const NAV_READ_MISSES = 1; // Read of a path that does not exist
 const CHECK_FAILED_MIN = 2; // failed check commands that fire Automated checks
 const AGENTS_MD_TOTAL_CHARS = 25000; // total loaded steering text (absolute, not relative)
+const AGENTS_MD_LIST_MAX = 3; // files listed under the global agents.md line (handoff to tune-setup)
 const AMBIENTE_LINE_CAP = 10; // own cap for the lit block; the "no signal" line is outside it
 const DENIAL_KINDS = ['user-rejected', 'permission-rule', 'automode-blocked'];
 const ENV_DENIALS = new Set(['permission-rule', 'automode-blocked']);
@@ -401,10 +402,16 @@ function evaluate(st, ctx, extraDenials) {
     }
   }
   if (agentsLit) {
+    const surface = largest.type === 'AutoMem' ? 'memory-index' : 'istruzioni';
     lines.push(
       `  global agents.md [strutturale]: ${st.instr.size} file, ${total} car. (soglia ${AGENTS_MD_TOTAL_CHARS}); ` +
-        `il più grande: ${largest.type} ${path.basename(largest.p)} ${largest.len} car.`
+        `handoff: tune-setup --surface ${surface}`
     );
+    const bySize = [...st.instr].sort((a, b) => b[1].len - a[1].len);
+    for (const [p, f] of bySize.slice(0, AGENTS_MD_LIST_MAX)) {
+      lines.push(`    ${f.type} ${path.basename(p)} ${f.len} car.`);
+    }
+    if (bySize.length > AGENTS_MD_LIST_MAX) lines.push(`    ... +${bySize.length - AGENTS_MD_LIST_MAX} file`);
   }
   const litCount = [infoLit, checksLit, navLit, econLit, agentsLit].filter(Boolean).length;
 

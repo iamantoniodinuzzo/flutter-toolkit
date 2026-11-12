@@ -139,6 +139,21 @@ test('Q2/Q3 actions, closing question and project-issue destination are wired (A
   assert(anti.includes('nel repo del progetto') && anti.includes('nessuna (<motivo>)'), 'anti-patterns not extended');
 });
 
+test('proposal shape rules and the agents-md handoff are wired (ADR 0015)', () => {
+  const persist = skill.slice(idx(skill, '## Persistenza'), idx(skill, '## Report finale'));
+  const shape = persist.slice(persist.indexOf('### Forma della proposta'));
+  assert(persist.includes('### Forma della proposta'), 'Forma della proposta missing inside Persistenza');
+  for (const needle of ['meccanic', 'hook', 'Puntatore prima del contenuto', '`prova:`', '`ripristino:`', 'references/writing-for-agents.md']) {
+    assert(shape.includes(needle), `Forma della proposta misses: ${needle}`);
+  }
+  assert(/\bconst AGENTS_MD_LIST_MAX\b/.test(scriptsSrc), 'AGENTS_MD_LIST_MAX not defined in scripts/');
+  const lens = read('references', 'environment-lens.md');
+  assert(lens.includes('--surface memory-index') && lens.includes('--surface istruzioni'), 'lens misses the handoff commands');
+  assert(scriptsSrc.includes('handoff: tune-setup --surface'), 'script does not emit the handoff line');
+  const anti = skill.slice(idx(skill, '## Anti-patterns'));
+  assert(anti.includes('vincolo meccanico') && anti.includes('handoff a `tune-setup`'), 'anti-patterns not extended');
+});
+
 test('the writing reference carries attribution, a 40-60 line body and the MIT text', () => {
   const ref = read('references', 'writing-for-agents.md');
   assert(/^> Adapted from /m.test(ref.split('\n').slice(0, 4).join('\n')));

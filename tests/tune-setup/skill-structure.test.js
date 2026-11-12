@@ -60,10 +60,12 @@ test('a batch is a proposal that always waits for an ok, and the report has a Lo
   assert(anti.includes('Applicare un lotto senza ok esplicito'));
 });
 
-test('the transcript script is untouched: no --surface flag leaks into retro', () => {
+test('the transcript script does not parse --surface (it only prints it as a handoff command, ADR 0015)', () => {
   const retroScripts = path.resolve(__dirname, '..', '..', 'skills', 'retro', 'scripts');
   for (const f of fs.readdirSync(retroScripts).filter((n) => n.endsWith('.js'))) {
     const src = fs.readFileSync(path.join(retroScripts, f), 'utf8');
-    assert(!src.includes('--surface'), `${f} must not implement --surface (ADR 0014)`);
+    // an argv comparison or an options list would mean the flag is parsed here
+    assert(!/argv\[[^\]]*\]\s*===\s*'--surface'/.test(src), `${f} must not parse --surface (ADR 0014)`);
+    assert(!/\[[^\]]*'--surface'[^\]]*\]\.includes/.test(src), `${f} must not list --surface as an option (ADR 0014)`);
   }
 });

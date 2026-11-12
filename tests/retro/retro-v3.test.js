@@ -463,7 +463,35 @@ test('ambiente/global agents.md: total at 24999 chars is silent, 25000 fires and
   write(env, 'a10', [att(10000, 14999)]);
   assert.match(run(env, ['--session', 'a10']), /^ambiente: nessun segnale$/m);
   write(env, 'a10', [att(10000, 15000)]);
-  assert.match(run(env, ['--session', 'a10']), /global agents\.md \[strutturale\]: 2 file, 25000 car\..*AutoMem MEMORY\.md 15000/);
+  const fired = run(env, ['--session', 'a10']);
+  assert.match(fired, /global agents\.md \[strutturale\]: 2 file, 25000 car\..*handoff: tune-setup --surface memory-index/);
+  // listed by size, largest first
+  assert.match(fired, /AutoMem MEMORY\.md 15000 car\.\n\s+Project CLAUDE\.md 10000 car\./);
+});
+
+test('ambiente/global agents.md: handoff surface follows the largest file and the list is capped', () => {
+  const env = makeEnv();
+  const file = (name, type, len) => ({ path: `/u/${name}`, type, content: 'x'.repeat(len) });
+  write(env, 'a12', [
+    attachment(env, 'a12', ago(T0), {
+      type: 'instructions',
+      files: [file('CLAUDE.md', 'Project', 20000), file('MEMORY.md', 'AutoMem', 6000)],
+    }),
+  ]);
+  assert.match(run(env, ['--session', 'a12']), /handoff: tune-setup --surface istruzioni/);
+
+  write(env, 'a13', [
+    attachment(env, 'a13', ago(T0), {
+      type: 'instructions',
+      files: [
+        file('a.md', 'Project', 9000), file('b.md', 'Project', 8000), file('c.md', 'Project', 7000),
+        file('d.md', 'User', 2000), file('e.md', 'User', 1000),
+      ],
+    }),
+  ]);
+  const out = run(env, ['--session', 'a13']);
+  assert.match(out, /Project a\.md 9000 car\.\n\s+Project b\.md 8000 car\.\n\s+Project c\.md 7000 car\.\n\s+\.\.\. \+2 file/);
+  assert.doesNotMatch(out, /d\.md 2000/);
 });
 
 test('ambiente block has its own cap and reports omitted lines', () => {
