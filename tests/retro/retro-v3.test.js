@@ -401,6 +401,36 @@ test('ambiente false positives: check words inside a --body or heredoc, and edit
   assert.match(run(env, ['--session', 'a6']), /nessun check eseguito/);
 });
 
+test('ambiente/automated checks: project wrapper scripts count as checks by file name (#107)', () => {
+  const env = makeEnv();
+  const silent = /^ambiente: nessun segnale$/m;
+  const ps = (id, n, command) => [
+    use(env, id, ago(T0 - n * 1000), `ps${n}`, 'PowerShell', { command }),
+    result(env, id, ago(T0 - n * 1000), `ps${n}`, 'ok', false),
+  ];
+  for (const command of [
+    'pwsh -NoProfile -File scripts/run-tests.ps1',
+    'node scripts/changelog-lint.js',
+    'bash ./tool/runTests.sh',
+    'powershell -Command "& ./tool/flutter_analyze.ps1"',
+  ]) {
+    write(env, 'w1', [...edit(env, 'w1', 1, src(env)), ...shell(env, 'w1', 2, command, 'ok', false)]);
+    assert.match(run(env, ['--session', 'w1']), silent, command);
+  }
+  write(env, 'w1', [...edit(env, 'w1', 1, src(env)), ...ps('w1', 2, '& .\\tool\\analyze.ps1')]);
+  assert.match(run(env, ['--session', 'w1']), silent);
+
+  // a wrapper run before the last edit is a check like any other
+  write(env, 'w1', [...shell(env, 'w1', 1, 'pwsh -File scripts/run-tests.ps1', 'ok', false), ...edit(env, 'w1', 2, src(env))]);
+  assert.match(run(env, ['--session', 'w1']), /1 check \(0 falliti\); 1 edit di sorgenti dopo l'ultimo check/);
+
+  // names without a check word, and the same words in arguments or non-script commands, do not count
+  for (const command of ['./scripts/latest.ps1', 'cat scripts/test.ps1', 'git add scripts/test.sh', 'pwsh scripts/deploy.ps1']) {
+    write(env, 'w1', [...edit(env, 'w1', 1, src(env)), ...shell(env, 'w1', 2, command, 'ok', false)]);
+    assert.match(run(env, ['--session', 'w1']), /nessun check eseguito/, command);
+  }
+});
+
 test('ambiente/information access: authenticate, command not found and env denials fire; user-rejected does not', () => {
   const env = makeEnv();
   write(env, 'a7', [use(env, 'a7', ago(T0), 'au', 'mcp__claude_ai_Notion__authenticate', {}), result(env, 'a7', ago(T0), 'au', 'login needed')]);

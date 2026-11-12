@@ -36,6 +36,11 @@ const CHECK_RES = [
   /^go\s+(?:test|vet)\b/,
   /^node\s+--test\b/,
 ];
+// Project wrapper scripts (#107): a script run at command position counts as a check when its
+// file name has one of these words. Whole words only, so `latest.ps1` does not match `test`.
+const SCRIPT_RUNNERS = new Set(['pwsh', 'powershell', 'bash', 'sh', 'zsh', 'node', 'python', 'python3', 'py', 'cmd']);
+const SCRIPT_EXT = new Set(['.ps1', '.sh', '.bash', '.bat', '.cmd', '.js', '.mjs', '.cjs', '.ts', '.py', '.dart']);
+const WRAPPER_WORD_RE = /^(?:tests?|analy[sz]e|format|lint|check)$/;
 const FLUTTER_CMD_RE = /^(?:dart|flutter|melos)\b/;
 const NOT_FOUND_RE =
   /command not found|is not recognized as|term '[^']+' is not recognized|exit code:? ?127\b/i;
@@ -194,8 +199,41 @@ function normSegment(seg) {
     .replace(/^(?:npx|pnpx|bunx|time|sudo)\s+/, '');
 }
 
+const baseName = (t) => t.replace(/\\/g, '/').split('/').pop();
+const scriptExt = (t) => path.extname(baseName(t)).toLowerCase();
+
+// True when the segment invokes a project script (directly or through a runner such as
+// `pwsh -File`) whose file name carries a check word: run-tests.ps1, changelog-lint.js, runTests.sh.
+function isWrapperCheck(seg) {
+  const tokens = (seg.match(/"[^"]*"|'[^']*'|\S+/g) || []).map((t) => t.replace(/^["']|["']$/g, ''));
+  if (!tokens.length) return false;
+  const head = baseName(tokens[0]).toLowerCase().replace(/\.exe$/, '');
+  let script = null;
+  if (SCRIPT_RUNNERS.has(head)) {
+    // `-Command "& ./x.ps1"` arrives as one token: look at its words too.
+    for (const t of tokens.slice(1)) {
+      const hit = t.split(/\s+/).map((w) => w.replace(/^&/, '')).find((w) => w && SCRIPT_EXT.has(scriptExt(w)));
+      if (hit) {
+        script = hit;
+        break;
+      }
+    }
+  } else if (SCRIPT_EXT.has(scriptExt(tokens[0])) || /[\\/]/.test(tokens[0])) {
+    script = tokens[0];
+  }
+  if (!script) return false;
+  const stem = baseName(script).replace(/\.[^.]+$/, '');
+  return stem
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .split(/[^A-Za-z0-9]+/)
+    .some((w) => WRAPPER_WORD_RE.test(w.toLowerCase()));
+}
+
 function isCheckCommand(cmd) {
-  return commandSegments(cmd).some((s) => CHECK_RES.some((re) => re.test(normSegment(s))));
+  return commandSegments(cmd).some((s) => {
+    const n = normSegment(s);
+    return CHECK_RES.some((re) => re.test(n)) || isWrapperCheck(n);
+  });
 }
 
 function hasFlutterCommand(cmd) {

@@ -22,7 +22,7 @@ Il tetto di righe del blocco (evidenze, non proposte) è `AMBIENTE_LINE_CAP`: se
 
 ## Falsi positivi già filtrati dallo script
 
-Non riaprirli a mano: un comando conta come check solo in posizione di comando (mai dentro un `--body` o un argomento), un edit è «di sorgente» solo sotto il cwd della sessione, una rilettura dopo un Edit riuscito non conta. Se una riga ti sembra comunque sbagliata, citala come dubbia invece di proporre.
+Non riaprirli a mano: un comando conta come check solo in posizione di comando (mai dentro un `--body` o un argomento), un edit è «di sorgente» solo sotto il cwd della sessione, una rilettura dopo un Edit riuscito non conta. Uno script del progetto (lanciato direttamente o via `pwsh`/`bash`/`node`/…) conta come check se il nome del file contiene la parola intera `test`, `analyze`, `format`, `lint` o `check`: «nessun check eseguito» non vale per i wrapper. Se una riga ti sembra comunque sbagliata, citala come dubbia invece di proporre.
 
 ## Flutter-aware, con fallback generico
 
