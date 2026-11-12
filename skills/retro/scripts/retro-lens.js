@@ -81,10 +81,16 @@ function textOf(content) {
   return '';
 }
 
-function emptySearch(tr) {
+// A Grep/Glob that found nothing. Grep in output_mode "content" reports numFiles 0 even with
+// hits (it counts lines), so a zero file count alone is not "empty" (#103). The literal result
+// text is the fallback for a record that carries no structured toolUseResult.
+const EMPTY_SEARCH_TEXT_RE = /^\s*No (?:matches|files) found\b/i;
+function emptySearch(tr, text) {
+  if (EMPTY_SEARCH_TEXT_RE.test(text || '')) return true;
   if (!tr || typeof tr !== 'object') return false;
-  if (tr.numFiles === 0) return true;
-  return Array.isArray(tr.filenames) && tr.filenames.length === 0 && (tr.numLines === 0 || !tr.content);
+  const noFiles = tr.numFiles === 0 || (Array.isArray(tr.filenames) && tr.filenames.length === 0);
+  const noHits = !(tr.numLines > 0) && !(tr.numMatches > 0) && !tr.content;
+  return noFiles && noHits;
 }
 
 // A shell call the harness moved to the background (#104): the id of that task and, when the
@@ -141,7 +147,7 @@ function collect(st, evt, sidechain) {
         text: text.length > 2000 ? text.slice(0, 2000) : text,
         truncated: /truncated output \(original token count/i.test(text),
         ts: evt.timestamp || null,
-        emptySearch: emptySearch(evt.toolUseResult),
+        emptySearch: emptySearch(evt.toolUseResult, text),
         ...backgroundInfo(evt.toolUseResult, text),
       });
     }
