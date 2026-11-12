@@ -41,6 +41,10 @@ const CHECK_RES = [
 const SCRIPT_RUNNERS = new Set(['pwsh', 'powershell', 'bash', 'sh', 'zsh', 'node', 'python', 'python3', 'py', 'cmd']);
 const SCRIPT_EXT = new Set(['.ps1', '.sh', '.bash', '.bat', '.cmd', '.js', '.mjs', '.cjs', '.ts', '.py', '.dart']);
 const WRAPPER_WORD_RE = /^(?:tests?|analy[sz]e|format|lint|check)$/;
+// Harness phrase for a foreground command that outlived its timeout (#104). It belongs to the
+// harness and may change, so a TaskStop on the moved task is an independent trigger.
+const BG_TIMEOUT_RE = /did not complete within its \d+\s*s timeout|moved to the background/i;
+const TASK_STOP_TOOLS = new Set(['TaskStop', 'KillShell']);
 const FLUTTER_CMD_RE = /^(?:dart|flutter|melos)\b/;
 const NOT_FOUND_RE =
   /command not found|is not recognized as|term '[^']+' is not recognized|exit code:? ?127\b/i;
@@ -83,6 +87,21 @@ function emptySearch(tr) {
   return Array.isArray(tr.filenames) && tr.filenames.length === 0 && (tr.numLines === 0 || !tr.content);
 }
 
+// A shell call the harness moved to the background (#104): the id of that task and, when the
+// harness reports it, the timeout that triggered the move. A deliberate run_in_background has
+// an id and no timeout.
+function backgroundInfo(tr, text) {
+  const out = {};
+  const obj = tr && typeof tr === 'object' ? tr : {};
+  if (typeof obj.backgroundTaskId === 'string' && obj.backgroundTaskId) out.bgTaskId = obj.backgroundTaskId;
+  else {
+    const m = /\(ID: ([A-Za-z0-9_-]+)\)/.exec(text);
+    if (m) out.bgTaskId = m[1];
+  }
+  if (typeof obj.timedOutAfterMs === 'number' && obj.timedOutAfterMs > 0) out.timedOutMs = obj.timedOutAfterMs;
+  return out;
+}
+
 // Fold one transcript event into `st`. Idempotent per tool_use id / tool_result id.
 function collect(st, evt, sidechain) {
   if (!evt || typeof evt !== 'object') return;
@@ -123,6 +142,7 @@ function collect(st, evt, sidechain) {
         truncated: /truncated output \(original token count/i.test(text),
         ts: evt.timestamp || null,
         emptySearch: emptySearch(evt.toolUseResult),
+        ...backgroundInfo(evt.toolUseResult, text),
       });
     }
   }
@@ -381,7 +401,26 @@ function evaluate(st, ctx, extraDenials) {
     if (prev !== undefined && !(lastEdit.has(norm(u.input.file_path)) && lastEdit.get(norm(u.input.file_path)) > prev)) rereads++;
     lastRead.set(key, u.seq);
   }
-  const econLit = big.length > 0 || truncs > 0 || rereads > 0;
+  // Foreground shell calls that timed out into the background. A deliberate
+  // run_in_background never counts, even when it is stopped later.
+  const stopped = new Set();
+  for (const u of main) {
+    if (!TASK_STOP_TOOLS.has(u.name) || !u.input) continue;
+    const id = u.input.task_id || u.input.shell_id;
+    if (typeof id === 'string' && id) stopped.add(id);
+  }
+  const timeouts = [];
+  for (const u of main) {
+    if (!shellCommand(u) || u.input.run_in_background) continue;
+    const r = st.results.get(u.id);
+    if (!r) continue;
+    if (r.timedOutMs || BG_TIMEOUT_RE.test(r.text) || (r.bgTaskId && stopped.has(r.bgTaskId))) {
+      const m = /(\d+)\s*s timeout/i.exec(r.text);
+      const secs = r.timedOutMs ? Math.round(r.timedOutMs / 1000) : m ? Number(m[1]) : null;
+      timeouts.push({ u, secs });
+    }
+  }
+  const econLit = big.length > 0 || truncs > 0 || rereads > 0 || timeouts.length > 0;
 
   // --- Global AGENTS.md (a constant property of the project, severity "strutturale")
   let total = 0;
@@ -433,10 +472,14 @@ function evaluate(st, ctx, extraDenials) {
   }
   if (econLit) {
     lines.push(
-      `  tool economy [costoso]: ${big.length} risultati >${TOOL_RESULT_CHARS} car., ${truncs} troncature, ${rereads} riletture`
+      `  tool economy [costoso]: ${big.length} risultati >${TOOL_RESULT_CHARS} car., ${truncs} troncature, ${rereads} riletture` +
+        (timeouts.length ? `, ${timeouts.length} timeout` : '')
     );
     for (const x of big.slice(0, 2)) {
       lines.push(`    ${x.u.name} ${excerpt(x.u.input)} → ${x.r.len} car.`);
+    }
+    for (const t of timeouts.slice(0, 2)) {
+      lines.push(`    timeout: ${t.u.name} ${excerpt(t.u.input)}${t.secs ? ` → ${t.secs} s` : ''}`);
     }
   }
   if (agentsLit) {
