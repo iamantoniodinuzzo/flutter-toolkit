@@ -20,6 +20,15 @@ Il tetto di righe del blocco (evidenze, non proposte) è `AMBIENTE_LINE_CAP`: se
 
 `automode-unavailable` e ogni `toolDenialKind` non noto sono guasti transitori lato server: nessuna modifica all'ambiente li evita, quindi non accendono information access e non generano proposte. `user-rejected` è già attrito (ADR 0008), non un segnale ambiente.
 
+## Forma della proposta ambiente
+
+Applica la regola 1 di «Forma della proposta» (`SKILL.md`) alla prova della riga:
+
+- **Forma di comando → `guard`.** La prova è un comando fallito o andato in timeout per la sua forma (es. `grep -r` su una cartella di build): la proposta è un hook `PreToolUse` che rifiuta quella forma e nomina l'alternativa, con i casi bloccati e consentiti da provare.
+- **Fatto mancante → `pointer`.** La prova è una ricerca a vuoto o una Read su path inesistente: la proposta è il puntatore di contesto della riga navigation.
+
+Il tipo va nel tag: `[environment: <segnale> · guard]` o `· pointer`. Un guard già presente per quella forma lo trova `tune-setup`. Il principio «build the check over writing the rule» viene dalla skill `retro` di `mattpocock/skills` (MIT, licenza in `references/writing-for-agents.md`).
+
 ## Falsi positivi già filtrati dallo script
 
 Non riaprirli a mano: un comando conta come check solo in posizione di comando (mai dentro un `--body` o un argomento), un edit è «di sorgente» solo sotto il cwd della sessione, una rilettura dopo un Edit riuscito non conta. Uno script del progetto (lanciato direttamente o via `pwsh`/`bash`/`node`/…) conta come check se il nome del file contiene la parola intera `test`, `analyze`, `format`, `lint` o `check`: «nessun check eseguito» non vale per i wrapper. Se una riga ti sembra comunque sbagliata, citala come dubbia invece di proporre.
