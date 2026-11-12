@@ -19,6 +19,9 @@ const AGENTS_MD_LIST_MAX = 3; // files listed under the global agents.md line (h
 const AMBIENTE_LINE_CAP = 10; // own cap for the lit block; the "no signal" line is outside it
 const DENIAL_KINDS = ['user-rejected', 'permission-rule', 'automode-blocked'];
 const ENV_DENIALS = new Set(['permission-rule', 'automode-blocked']);
+// Sections that can claim a failed call, in precedence order (#100): the breakdown of
+// `attribuiti ad ambiente` prints them in this order.
+const CLAIM_SECTIONS = ['information access', 'automated checks', 'navigation'];
 
 const SHELL_TOOLS = new Set(['Bash', 'PowerShell', 'exec_command', 'functions.exec_command']);
 const SOURCE_EXT = new Set([
@@ -320,6 +323,11 @@ function evaluate(st, ctx, extraDenials) {
   const { excerpt, roots } = ctx;
   const denials = st.denials.concat(extraDenials || []);
   const claimedFailed = new Set();
+  const claimedBy = new Map(); // tool_use id -> section that claimed it (#100)
+  const claim = (id, section) => {
+    claimedFailed.add(id);
+    if (!claimedBy.has(id)) claimedBy.set(id, section);
+  };
   const claimedChecks = new Set();
   const main = [...st.uses.values()].filter((u) => !u.sidechain);
 
@@ -330,12 +338,12 @@ function evaluate(st, ctx, extraDenials) {
   for (const u of main) {
     const r = st.results.get(u.id);
     if (!r || !r.isError || !shellCommand(u) || !NOT_FOUND_RE.test(r.text)) continue;
-    claimedFailed.add(u.id);
+    claim(u.id, CLAIM_SECTIONS[0]);
     const n = notFoundName(u, r.text);
     notFound.set(n, (notFound.get(n) || 0) + 1);
   }
   const envDenials = denials.filter((d) => ENV_DENIALS.has(d.kind));
-  for (const d of envDenials) if (d.id && st.uses.has(d.id) && !st.uses.get(d.id).sidechain) claimedFailed.add(d.id);
+  for (const d of envDenials) if (d.id && st.uses.has(d.id) && !st.uses.get(d.id).sidechain) claim(d.id, CLAIM_SECTIONS[0]);
   const infoLit = auth.size > 0 || notFound.size > 0 || envDenials.length > 0;
 
   // --- Automated checks
@@ -357,7 +365,7 @@ function evaluate(st, ctx, extraDenials) {
     srcEdits.length > 0 &&
     (checkUses.length === 0 || editsAfter.length > 0 || failedChecks.length >= CHECK_FAILED_MIN);
   if (checksLit) {
-    failedChecks.forEach((u) => claimedFailed.add(u.id));
+    failedChecks.forEach((u) => claim(u.id, CLAIM_SECTIONS[1]));
     checkUses.forEach((u) => claimedChecks.add(u.id));
   }
 
@@ -381,7 +389,7 @@ function evaluate(st, ctx, extraDenials) {
     for (const u of main) {
       const r = st.results.get(u.id);
       if (u.name === 'Read' && r && r.isError && !claimedFailed.has(u.id) && /does not exist|no such file|not found|ENOENT/i.test(r.text)) {
-        claimedFailed.add(u.id);
+        claim(u.id, CLAIM_SECTIONS[2]);
       }
     }
   }
@@ -511,7 +519,7 @@ function evaluate(st, ctx, extraDenials) {
       block = block.slice(0, AMBIENTE_LINE_CAP - 1).concat(`  ... ${omitted} righe omesse (tetto ${AMBIENTE_LINE_CAP})`);
     }
   }
-  return { block, claimedFailed, claimedChecks, srcEdits };
+  return { block, claimedFailed, claimedBy, claimedChecks, srcEdits };
 }
 
 module.exports = {
@@ -532,4 +540,5 @@ module.exports = {
   CHECK_FAILED_MIN,
   AGENTS_MD_TOTAL_CHARS,
   AMBIENTE_LINE_CAP,
+  CLAIM_SECTIONS,
 };

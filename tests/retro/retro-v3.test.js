@@ -394,7 +394,7 @@ test('ambiente/navigation: 2 empty searches stay silent, the 3rd fires; one Read
   ]);
   const out = run(env, ['--session', 'a4']);
   assert.match(out, /navigation \[attrito\]: 0 ricerche a vuoto, 1 Read su path inesistente/);
-  assert.match(out, /attribuiti ad ambiente: 1/);
+  assert.match(out, /attribuiti ad ambiente: 1 \(navigation 1; vedi blocco Ambiente\)/);
   assert.doesNotMatch(out, /Read x1/); // the Read miss left Q5's error list
 });
 
@@ -446,7 +446,7 @@ test('ambiente/automated checks: sources edited with no check, or after the last
   ]);
   const out = run(env, ['--session', 'a5']);
   assert.match(out, /2 check \(2 falliti\)/);
-  assert.match(out, /attribuiti ad ambiente: 2/);
+  assert.match(out, /attribuiti ad ambiente: 2 \(automated checks 2; vedi blocco Ambiente\)/);
   assert.match(out, /tool errors: 0/);
   assert.match(out, /stack: flutter/);
 });
@@ -567,11 +567,26 @@ test('ambiente/information access takes precedence: a missing flutter binary is 
   ]);
   const out = run(env, ['--session', 'a8']);
   assert.match(out, /comando non trovato: flutter/);
-  assert.match(out, /attribuiti ad ambiente: 2/);
+  assert.match(out, /attribuiti ad ambiente: 2 \(information access 2; vedi blocco Ambiente\)/);
   assert.match(out, /tool errors: 0/);
   assert.match(out, /automated checks \[attrito\]: nessun check eseguito; 1 edit di sorgenti/); // no check actually ran
   assert.doesNotMatch(out, /falliti/);
   assert.match(out, /repeated shell commands: 0/); // the claimed calls left ripetizioni too
+});
+
+test('ambiente: attribuiti names the sections; a lit signal with no failed call is not in N (#100)', () => {
+  const env = makeEnv();
+  write(env, 'b1', [
+    use(env, 'b1', ago(T0), 'd1', 'Bash', { command: 'cat secrets.env' }),
+    result(env, 'b1', ago(T0), 'd1', 'denied by rule', true, { toolDenialKind: 'permission-rule' }),
+    use(env, 'b1', ago(T0 - 1000), 'rm', 'Read', { file_path: src(env, 'ghost.dart') }),
+    result(env, 'b1', ago(T0 - 1000), 'rm', 'File does not exist.', true),
+    use(env, 'b1', ago(T0 - 2000), 'big', 'Read', { file_path: src(env, 'huge.txt') }),
+    result(env, 'b1', ago(T0 - 2000), 'big', 'x'.repeat(20001), false),
+  ]);
+  const out = run(env, ['--session', 'b1']);
+  assert.match(out, /ambiente: 3 segnali/); // information access, navigation, tool economy
+  assert.match(out, /attribuiti ad ambiente: 2 \(information access 1, navigation 1; vedi blocco Ambiente\)/);
 });
 
 test('ambiente dedup: repeated checks leave "repeated shell commands" when the block is lit, stay when it is not', () => {
@@ -694,7 +709,7 @@ test('real-shape canary: the sanitized Claude fixture is read in full, replayed 
   assert.doesNotMatch(out, /WARNING/);
   assert.match(out, /session: canary-session {2}events: 11 /);
   assert.match(out, /tool errors: 1\n/);
-  assert.match(out, /attribuiti ad ambiente: 1/); // the denied call belongs to the ambiente block
+  assert.match(out, /attribuiti ad ambiente: 1 \(information access 1; vedi blocco Ambiente\)/); // the denied call belongs to the ambiente block
   assert.match(out, /rifiuti: .*automode-blocked=1/);
   assert.match(out, /information access \[bloccante\]: rifiuti automode-blocked x1/);
   assert.match(out, / x3 echo placeholder/); // 3 distinct tool_use ids; the 2 blob replays add nothing
