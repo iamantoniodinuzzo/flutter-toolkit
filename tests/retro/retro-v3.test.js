@@ -498,6 +498,42 @@ test('ambiente/automated checks: project wrapper scripts count as checks by file
   }
 });
 
+test('ambiente/automated checks: #102 wrapper shapes on the PowerShell tool', () => {
+  const env = makeEnv();
+  const ps = (n, command, out, isError) => [
+    use(env, 'w2', ago(T0 - n * 1000), `p${n}`, 'PowerShell', { command }),
+    result(env, 'w2', ago(T0 - n * 1000), `p${n}`, out, isError),
+  ];
+  const root = env.cwd;
+  const quoted = "& 'C:\\Users\\x y\\repo\\tools\\test.ps1' -Path 'app' test/a_test.dart";
+
+  // four failing runs and one passing run of a quoted-path wrapper: checks ran, none "missing"
+  write(env, 'w2', [
+    ...edit(env, 'w2', 1, src(env)),
+    ...[2, 3, 4, 5].flatMap((n) => ps(n, quoted, 'FAILED test/a_test.dart', true)),
+    ...ps(6, quoted, 'All tests passed!', false),
+  ]);
+  const out = run(env, ['--session', 'w2']);
+  assert.match(out, /5 check \(4 falliti\)/);
+  assert.doesNotMatch(out, /nessun check eseguito/);
+
+  // `Set-Location <root>; tools/x.ps1` puts the wrapper at command position of the second segment
+  write(env, 'w2', [
+    ...edit(env, 'w2', 1, src(env)),
+    ...ps(2, `Set-Location ${root}; tools/analyze-changed.ps1`, 'No issues found!', false),
+  ]);
+  assert.match(run(env, ['--session', 'w2']), /^ambiente: nessun segnale$/m);
+
+  // "no check recognised" and "edit after the last check" are two facts: a later edit says the second
+  write(env, 'w2', [
+    ...ps(1, `Set-Location ${root}; tools/test.ps1 -Path app`, 'All tests passed!', false),
+    ...edit(env, 'w2', 2, src(env)),
+  ]);
+  const late = run(env, ['--session', 'w2']);
+  assert.match(late, /1 check \(0 falliti\); 1 edit di sorgenti dopo l'ultimo check/);
+  assert.doesNotMatch(late, /nessun check eseguito/);
+});
+
 test('ambiente/information access: authenticate, command not found and env denials fire; user-rejected does not', () => {
   const env = makeEnv();
   write(env, 'a7', [use(env, 'a7', ago(T0), 'au', 'mcp__claude_ai_Notion__authenticate', {}), result(env, 'a7', ago(T0), 'au', 'login needed')]);
