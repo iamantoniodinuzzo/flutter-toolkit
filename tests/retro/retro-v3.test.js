@@ -338,6 +338,46 @@ test('ambiente/tool economy: a runtime truncation notice fires it', () => {
   assert.match(run(env, ['--session', 'a3']), /1 troncature/);
 });
 
+test('ambiente/tool economy: a foreground timeout fires, a deliberate background run does not (#104)', () => {
+  const env = makeEnv();
+  const tm = (id, n, command, text, tr, input = {}) => [
+    use(env, id, ago(T0 - n * 1000), `t${n}`, 'Bash', { command, ...input }),
+    result(env, id, ago(T0 - n * 1000), `t${n}`, text, false, { toolUseResult: tr }),
+  ];
+  const stop = (id, n, taskId) => [
+    use(env, id, ago(T0 - n * 1000), `s${n}`, 'TaskStop', { task_id: taskId }),
+    result(env, id, ago(T0 - n * 1000), `s${n}`, `Successfully stopped task: ${taskId}`, false),
+  ];
+  const harness = 'Command did not complete within its 120s timeout and was moved to the background (ID: b1).';
+
+  write(env, 'e1', [
+    ...tm('e1', 1, 'grep -r foo .', harness, { backgroundTaskId: 'b1', timedOutAfterMs: 120000 }),
+    ...stop('e1', 2, 'b1'),
+  ]);
+  const out = run(env, ['--session', 'e1']);
+  assert.match(out, /tool economy \[costoso\]: 0 risultati >20000 car\., 0 troncature, 0 riletture, 1 timeout/);
+  assert.match(out, /timeout: Bash grep -r foo \. → 120 s/);
+  assert.match(out, /tool errors: 0/);
+
+  // the harness rewords the phrase and drops the timeout field: the TaskStop alone is enough
+  write(env, 'e1', [
+    ...tm('e1', 1, 'grep -r foo .', 'Moved off to the side (ID: b2).', { backgroundTaskId: 'b2' }),
+    ...stop('e1', 2, 'b2'),
+  ]);
+  assert.match(run(env, ['--session', 'e1']), /1 timeout/);
+
+  // the phrase alone, with no TaskStop, fires
+  write(env, 'e1', tm('e1', 1, 'sleep 300', harness, { backgroundTaskId: 'b4', timedOutAfterMs: 120000 }));
+  assert.match(run(env, ['--session', 'e1']), /1 timeout/);
+
+  // a deliberate run_in_background stopped later stays silent
+  write(env, 'e1', [
+    ...tm('e1', 1, 'npm run dev', 'Command running in background with ID: b3.', { backgroundTaskId: 'b3' }, { run_in_background: true }),
+    ...stop('e1', 2, 'b3'),
+  ]);
+  assert.match(run(env, ['--session', 'e1']), /^ambiente: nessun segnale$/m);
+});
+
 test('ambiente/navigation: 2 empty searches stay silent, the 3rd fires; one Read miss fires', () => {
   const env = makeEnv();
   const search = (n) => [
