@@ -1,4 +1,4 @@
-<!-- source: local (claude-flutter) -->
+<!-- source: local (flutter-toolkit) -->
 # Size budget and dead assets
 
 ## Size matters more than precaching

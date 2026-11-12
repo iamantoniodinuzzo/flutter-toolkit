@@ -23,7 +23,9 @@ function validate(root = path.resolve(__dirname, '..')) {
   assert.equal(claude.version, pkg.version);
   assert.equal(json('.claude-plugin/marketplace.json').plugins[0].source.ref, `v${pkg.version}`);
   assert.match(fs.readFileSync(path.join(root, 'README.md'), 'utf8'), new RegExp(`version-${pkg.version.replaceAll('.', '\\.')}\\-blue`));
-  assert.equal(market.name, 'claude-flutter');
+  assert.equal(market.name, 'flutter-toolkit');
+  assert.equal(json('.claude-plugin/marketplace.json').name, market.name, 'Claude and Codex marketplace names must match');
+  assert.equal(claude.name, market.name, 'plugin and marketplace names must match');
   assert.equal(market.plugins[0].name, codex.name);
   assert.deepEqual(market.plugins[0].source, { source: 'local', path: '.' });
   const names = fs.readdirSync(path.join(root, 'skills')).filter(name =>

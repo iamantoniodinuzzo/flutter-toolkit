@@ -88,7 +88,7 @@ ticket's.
 
 **4. Repo-boundary ownership: always `retro`.** When friction traces back to a toolkit skill
 itself (not the target project), the cross-repo proposal — an issue on
-`iamantoniodinuzzo/claude-flutter` — stays `retro`'s responsibility, independent of the split.
+`iamantoniodinuzzo/flutter-toolkit` — stays `retro`'s responsibility, independent of the split.
 `retro` already runs once per task and already sees the toolkit-vs-project distinction in its
 own evidence; `tune-setup` runs rarely and on a schedule the user controls, which is the wrong
 cadence for catching this in the moment. This settles ownership only — the routing mechanics

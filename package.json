@@ -16,7 +16,7 @@
   ],
   "author": "iamantoniodinuzzo",
   "license": "MIT",
-  "homepage": "https://github.com/iamantoniodinuzzo/claude-flutter",
+  "homepage": "https://github.com/iamantoniodinuzzo/flutter-toolkit",
   "scripts": {
     "test": "node --test tests/**/*.test.js",
     "validate": "node scripts/validate-skills.js"

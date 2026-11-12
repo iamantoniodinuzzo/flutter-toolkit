@@ -1,4 +1,4 @@
-<!-- source: local (claude-flutter) -->
+<!-- source: local (flutter-toolkit) -->
 ## Web Interaction Affordances in Flutter – Complete Guide
 
 **Goal:** Understand why Flutter widgets intended for touch may be invisible or

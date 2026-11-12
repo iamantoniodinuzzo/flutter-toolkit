@@ -9,8 +9,8 @@ Claude Code clones plugins via SSH by default. If SSH keys are not configured, i
 git config --global url."https://github.com/".insteadOf "git@github.com:"
 
 # Refresh marketplace index, then update
-claude plugin marketplace update claude-flutter
-claude plugin update flutter-toolkit@claude-flutter
+claude plugin marketplace update flutter-toolkit
+claude plugin update flutter-toolkit@flutter-toolkit
 ```
 
 Restart Claude Code after updating.
@@ -28,6 +28,6 @@ Claude Code detects the update **only when the resolved version string changes a
 To get the latest version:
 
 ```bash
-claude plugin marketplace update claude-flutter
-claude plugin update flutter-toolkit@claude-flutter
+claude plugin marketplace update flutter-toolkit
+claude plugin update flutter-toolkit@flutter-toolkit
 ```
