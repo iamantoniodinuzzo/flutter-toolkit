@@ -1,6 +1,6 @@
 ---
 name: tune-setup
-description: "Audit the current agent configuration and workflow on explicit request. Supports Claude Code and Codex instructions, settings, hooks, agents, and available session evidence. Use for \"tune-setup\", \"ottimizza il setup\", or \"audit config\"; never run automatically."
+description: "Audit the current agent configuration and workflow on explicit request. Supports Claude Code and Codex instructions, settings, hooks, agents, and available session evidence. Use for \"tune-setup\", \"ottimizza il setup\", or \"audit config\", or to audit one surface such as the memory index; never run automatically."
 user-invocable: true
 ---
 
@@ -24,6 +24,14 @@ Per Claude usa le superfici sotto. Per Codex leggi `AGENTS.md` / `AGENTS.overrid
 
 Il parser Codex riporta errori, comandi ripetuti e patch ripetute. Le metriche Claude (`Skill`, `skill_listing`, hook injection/cancellation, `toolDenialKind`) sono **non disponibili**, non zero. Cita evidenze equivalenti solo se accessibili. Per altri agenti dichiara la copertura parziale. Una capacita assente non e configurazione rotta; un trigger-miss richiede la prova che la skill era offerta e pertinente.
 
+## Ambito
+
+Argomento opzionale `--surface <nome>`, con `<nome>` tra `istruzioni` · `impostazioni` · `hook` · `agenti` · `skill-trigger` · `memory-index`.
+
+- Senza argomento: audit completo delle cinque superfici sotto.
+- Con argomento: Passo 0 e Passo 1 si limitano a quella superficie. Le altre non compaiono nel report, nemmeno come «nessun finding»; una riga dichiara l'ambito.
+- `memory-index` esiste solo con l'argomento esplicito: non fa parte dell'audit completo, che resta di cinque superfici.
+
 ## Passo 0 — Evidenze dal transcript
 
 ```bash
@@ -33,6 +41,8 @@ node "<installed retro directory>/scripts/session-evidence.js" --agent <claude|c
 Il parser appartiene alla skill installata `retro` — è deliberato (ADR 0008): un solo parser `.jsonl`, non duplicato. `retro` non passa `--config-audit`; `tune-setup` lo passa sempre. Per Claude il flag aggiunge un blocco separato, sotto un cap proprio (`CONFIG_AUDIT_LINE_CAP`), con invocazioni `Skill`, hook injection ripetute, `hook_cancelled`, `toolDenialKind` e skill offerte ma mai invocate. Per Codex il blocco dichiara queste metriche non disponibili.
 
 Se non trova un transcript, stampa una riga sola e esce con successo — **non è prova di una sessione pulita**: dichiaralo, non presentare il silenzio come "nessun problema" (stessa regola di `retro`).
+
+**Trigger di dimensione.** Se la causa è una soglia di dimensione (la riga `global agents.md` di `retro`, o `--surface memory-index`), errori, hook, rifiuti e skill offerte del transcript non riguardano il finding. L'evidenza valida è la dimensione per file e la lunghezza per riga, misurate nel Passo 1. Con `--surface memory-index` il Passo 0 non si esegue; senza ambito gira, e il report dichiara che il suo output non è evidenza per quel finding. Con un altro `--surface` cita solo le righe del blocco `--config-audit` di quella superficie.
 
 ## Passo 1 — Leggi i file di configurazione
 
@@ -44,6 +54,8 @@ Il Passo 0 copre solo il derivato dal transcript. Leggi direttamente i file appl
 | Impostazioni | `.claude/settings.json` + `.claude/settings.local.json` | `.codex/config.toml` e configurazione utente accessibile in `CODEX_HOME` |
 | Hook e agenti | Definizizioni hook e agenti installati | Solo definizioni esistenti e supportate dall'host corrente |
 | Skill e plugin | Catalogo offerto e invocazioni accessibili | Catalogo offerto e prove di caricamento accessibili |
+
+Con `--surface`, leggi solo la riga della tabella corrispondente. Per `memory-index` il file da leggere è l'indice della memoria nativa offerta dall'host (per Claude `MEMORY.md` nella directory di memoria del progetto) più i file che punta; senza memoria nativa accessibile (host senza memoria, Codex incluso) è "non applicabile".
 
 Se una superficie o la sua evidenza non è accessibile, segnala "non verificata"; se non è supportata, segnala "non applicabile". Non riportarla come pulita.
 
@@ -69,6 +81,22 @@ Il Passo 0 fornisce **solo l'ancora strutturale**: skill X offerta in `skill_lis
 
 Una citazione senza turno + testo esatto della description non è una citazione valida — non proporla.
 
+### Indice di memoria (solo con `--surface memory-index`)
+
+**Misura** con shell o Node: righe e caratteri dell'indice, più le righe più lunghe. La lunghezza è un indizio, non il criterio.
+
+**Criteri di potatura**, ognuno con la sua prova:
+
+1. *Voce di issue chiusa*: la voce cita una issue chiusa (prova: `gh issue view <n> --json state`, sola lettura) e la nota non porta un apprendimento che sopravvive alla issue. Se lo porta, si riscrive come apprendimento.
+2. *Riga con contenuto*: la riga d'indice riporta il fatto invece della condizione per leggere la nota. Si riscrive come puntatore più gancio.
+3. *Raggiungibilità*: una voce tolta dall'indice resta su disco solo se nome file o `description` contengono i termini che un Glob/Grep sulla directory di memoria troverebbe. Altrimenti si tiene la voce o si rinomina la nota.
+
+**Controllo dei puntatori**: ogni link dell'indice si risolve in un file esistente; ogni file della directory (indice escluso) o è indicizzato o è dichiarato orfano.
+
+**Rimisura**: la sessione che pota vede ancora le istruzioni caricate all'avvio, quindi il prima/dopo del report è misurato su disco. La conferma sul totale caricato arriva da `retro` in una **sessione nuova** (riga `global agents.md`).
+
+La potatura è un **lotto**: una sola proposta, mai applicata senza ok (vedi «Persistenza»).
+
 ## Persistenza
 
 Non creare memoria sostitutiva se manca una destinazione nativa autorizzata. Le modifiche a `AGENTS.md` e `.codex/config.toml` restano proposte finche non autorizzate.
@@ -79,10 +107,11 @@ Non creare memoria sostitutiva se manca una destinazione nativa autorizzata. Le 
 | Config del progetto target (`CLAUDE.md` / `.claude/settings.json` / hooks / `agents/`) | Convenzione permanente da correggere, o superficie che questo audit ha segnalato come rotta/stale | Proposta — aspetta l'ok |
 | Automation spec (skill / hook / slash command / subagent) | Pattern ripetuto che dovrebbe diventare automazione riutilizzabile | Proposta — aspetta l'ok |
 | Issue cross-repo su `iamantoniodinuzzo/flutter-toolkit` | L'attrito risale a una skill del toolkit stesso, non al progetto target | Proposta — aspetta l'ok |
+| Lotto su una superficie (potatura dell'indice di memoria) | Modifica coordinata di più voci, valutata come un'unica decisione | Proposta — aspetta l'ok, anche con memoria nativa autorizzata |
 
 **Issue cross-repo**: `gh issue create --repo iamantoniodinuzzo/flutter-toolkit`, con `--repo` **sempre esplicito** — mai dedotto dal `git remote` locale (che punta al progetto target). `retro` di solito intercetta prima l'attrito legato al toolkit (gira ad ogni fine task), ma questo non è esclusivo: `tune-setup` può produrre la stessa destinazione in autonomia, sulla propria evidenza — in particolare dal trigger-miss — perché non esiste canale di handoff tra le due skill.
 
-Cap: **max 5 proposte** in "Proposed" — indipendente dal cap di 3 di `retro` (pool separati, per skill produttrice, non per tipo di destinazione: una issue cross-repo trovata da `retro` conta nel cap di `retro`, la stessa trovata da `tune-setup` conta nel suo). Default pensato come "una per superficie auditata", regolabile se un audit reale lo smentisce.
+Cap: **max 5 proposte** in "Proposed" — indipendente dal cap di 3 di `retro` (pool separati, per skill produttrice, non per tipo di destinazione: una issue cross-repo trovata da `retro` conta nel cap di `retro`, la stessa trovata da `tune-setup` conta nel suo). Default pensato come "una per superficie auditata", regolabile se un audit reale lo smentisce. Un lotto conta **una** proposta, per quante voci tocchi.
 
 ## Report finale
 
@@ -98,9 +127,15 @@ Proposed — aspetto il tuo ok
 
 No action
 3. <superficie> — nessun finding, verificato
+
+Lotto — <superficie>: proposto | applicato
+  prima: <N> righe, <C> car. · dopo: <N'> righe, <C'> car.
+  tolte/riscritte: <n> (issue chiuse: a · righe con contenuto: b) — elenco
+  puntatori: <k>/<k> si risolvono · orfani: <nessuno | elenco>
+  rimisura: retro in una sessione nuova (riga global agents.md)
 ```
 
-Categorie: `config` (CLAUDE.md/settings/hooks/agents da correggere) · `automation` (pattern ripetuto che potrebbe diventare skill/hook/slash command/subagent) · `friction` (segnale da `toolDenialKind`/`hook_cancelled`) · `knowledge` (fatto utile ma non abbastanza strutturale per una proposta di config).
+Categorie: `batch` (modifica coordinata di più voci di una superficie, un'unica proposta) · `config` (CLAUDE.md/settings/hooks/agents da correggere) · `automation` (pattern ripetuto che potrebbe diventare skill/hook/slash command/subagent) · `friction` (segnale da `toolDenialKind`/`hook_cancelled`) · `knowledge` (fatto utile ma non abbastanza strutturale per una proposta di config).
 
 `toolDenialKind`: solo `user-rejected` conta come attrito reale, quotato con `userFeedback` quando presente. `permission-rule` e `automode-blocked` vanno riportati separatamente, come conferma che i guardrail configurati funzionano — non come attrito, non vanno mescolati con `user-rejected`. Ogni altro valore (es. `automode-unavailable`) è un guasto transitorio del classificatore: riga neutra «guasto transitorio, né attrito né guardrail», mai una proposta.
 
@@ -113,3 +148,7 @@ Categorie: `config` (CLAUDE.md/settings/hooks/agents da correggere) · `automati
 - Scrivere in `CLAUDE.md`, `.claude/settings.json`, un hook, `agents/`, o aprire una issue cross-repo senza ok esplicito.
 - Dichiarare una superficie "pulita" senza averla effettivamente controllata in Passo 0/1.
 - Superare il cap di 5 proposte "Proposed" in un singolo report.
+- Applicare un lotto senza ok esplicito, anche con memoria nativa autorizzata.
+- Dichiarare «ridotto» citando il totale visto dal transcript della sessione che pota: la misura è su disco, la conferma è di `retro` in una sessione nuova.
+- Togliere una voce dall'indice senza il controllo di raggiungibilità.
+- Chiedere evidenze del transcript per un trigger di dimensione.
