@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2026-11-12
+
+### Added
+
+- `retro`: Q2 and Q3 now close with an action, and the report ends with a closing question about the work
+  worth keeping. (#108, ADR 0013)
+- `retro`: a mechanical constraint (numeric cap, fixed pattern, path) is proposed as a check, not a line
+  of prose, and the `global agents.md` signal hands off to `tune-setup`. A new "Forma della proposta"
+  section sets the shape of each proposal. (#110, ADR 0015)
+- `retro`: ambiente proposals name a `guard` (PreToolUse hook) when the evidence is a command that failed
+  or timed out for its shape; a missing fact stays a context `pointer`. (#105)
+- `retro`: the tool-economy signal fires on a foreground shell command that timed out or whose background
+  task is later stopped with `TaskStop`; the evidence line names the command and the duration. (#104)
+- `retro`: the "attribuiti ad ambiente" line breaks the count down by the section that claimed each failed
+  call, e.g. `2 (information access 1, navigation 1; vedi blocco Ambiente)`. (#100)
+- `tune-setup`: audit a single surface with `--surface` (six values, `memory-index` explicit-only), plus
+  criteria, a pointer check and a re-measure rule for pruning the memory index. (#109, ADR 0014)
+
+### Fixed
+
+- `retro`: the Codex parser reads the real rollout format (`exec` custom tool calls, `CommandExecution` and
+  `FileChange` events) instead of reporting 0 errors, 0 repeats and 0 edits; the observed `cli_version`
+  range grows to 0.167.0. (#88)
+- `retro`: Q1–Q4 and Q6 are not applicable for any non-current transcript, whichever flag selects it
+  (`--transcript` as well as `--session`), so an agent can no longer invent answers. (#99)
+- `retro`: a content-mode `Grep` that returned lines is no longer counted as an empty search, which made the
+  navigation signal fire on its own. (#103)
+- `retro`: project wrapper scripts whose name contains the word test/analyze/format/lint/check count as
+  automated checks, so they are not reported as "nessun check eseguito"; the #102 shapes are pinned by
+  tests. (#107, #102)
+- `retro`: Passo 0 shows the `--transcript`/`--session` forms and says that `diff:` reads git in the cwd
+  recorded in the transcript, not the caller's. (#98)
+
+### Changed
+
+- `.serena/` is gitignored; Serena is no longer part of the project or its environment. (#86)
+
 ## [4.0.0] - 2026-11-12
 
 ### Changed
