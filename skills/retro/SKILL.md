@@ -20,7 +20,7 @@ Answer in the conversation language. Be honest, specific, non-defensive. No prai
 
 Se la sessione è **già stata compattata** quando parte la retro: dichiaralo apertamente nella risposta e limita Q5 a ciò che il Passo 0 conferma dal transcript — non riempire con ricordi plausibili del riassunto.
 
-Se l'utente indica una **sessione diversa dalla corrente**: lancia il Passo 0 con `--session <id>` e lavora solo sulle evidenze — Passo 0 (con `diff:`), Q5, blocco `Ambiente` e Ship handoff. Q1, Q2, Q3, Q4 e Q6 si dichiarano «non applicabile: richiedono la memoria del lavoro». Più sessioni insieme: fuori scope.
+Q1, Q2, Q3, Q4 e Q6 richiedono la memoria del lavoro, che esiste solo per la conversazione corrente. Se il transcript analizzato non è la conversazione corrente — l'utente indica un'altra sessione, oppure il Passo 0 gira con `--session <id>` o `--transcript <path>` su una sessione non viva o sintetica (header `selected by:` che non è la sessione corrente, o `WARNING` di transcript obsoleto) — lavora solo sulle evidenze: Passo 0 (con `diff:`), Q5, blocco `Ambiente` e Ship handoff. Q1, Q2, Q3, Q4 e Q6 si dichiarano «non applicabile: richiedono la memoria del lavoro», senza risposte ricostruite. Conta l'identità con la conversazione corrente, non il flag: rilanciare la sessione corrente con `--transcript` o `--session` lascia le domande applicabili. Più sessioni insieme: fuori scope.
 
 ## Compatibilita della sessione
 

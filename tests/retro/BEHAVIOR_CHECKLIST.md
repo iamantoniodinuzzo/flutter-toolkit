@@ -28,5 +28,6 @@ Ricorda: `skill-structure.test.js` copre ordine e cablaggio, questa lista copre 
 | 20 | Una proposta che sposta una regola in una skill porta `prova:` e `ripristino:` | leggere la proposta | |
 | 21 | Con `global agents.md` acceso il report riporta il comando di handoff e l'elenco file; nessuna `Read` sui file di istruzioni | fixture con totale ≥ soglia; transcript della retro | |
 | 22 | Un comando andato in timeout per la sua forma dà una proposta `· guard` (hook `PreToolUse`, casi bloccati e consentiti); una ricerca a vuoto o una Read su path inesistente dà `· pointer` | fixture con un `grep -r` in timeout e una Read su path inesistente | |
+| 23 | Con `--transcript` su un transcript sintetico o non vivo, Q1–Q4 e Q6 dicono «non applicabile: richiedono la memoria del lavoro» e nessuna risposta è ricostruita; rilanciare la sessione corrente con `--transcript` le lascia applicabili | fixture sintetica passata con `--transcript`; rilancio della sessione corrente | |
 
 Esito della run: data, fixture usata, versione della skill, righe `KO` (se presenti).
