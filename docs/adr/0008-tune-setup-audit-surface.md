@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted (wayfinder ticket #63, map #57)
+Accepted (wayfinder ticket #63, map #57). Amended by
+[ADR 0014](0014-tune-setup-surface-scope-and-memory-index.md): `--surface` scopes the audit to one
+surface, `memory-index` is reachable only that way, and a size trigger skips the transcript evidence.
 
 ## Context
 
