@@ -172,6 +172,14 @@ test('Q1-Q4 and Q6 are not applicable for any non-current transcript, whatever f
   }
 });
 
+test('Passo 0 shows the --session/--transcript forms and where diff: reads its cwd (#98)', () => {
+  const passo0 = skill.slice(idx(skill, '## Passo 0'), idx(skill, '## Le sei domande'));
+  for (const needle of ['--transcript <path>', '--session <id>', 'cwd della sessione assente', 'registrato nel transcript']) {
+    assert(passo0.includes(needle), `Passo 0 misses: ${needle}`);
+  }
+  assert(scriptsSrc.includes('cwd della sessione assente'), 'scripts do not emit "cwd della sessione assente"');
+});
+
 test('the writing reference carries attribution, a 40-60 line body and the MIT text', () => {
   const ref = read('references', 'writing-for-agents.md');
   assert(/^> Adapted from /m.test(ref.split('\n').slice(0, 4).join('\n')));

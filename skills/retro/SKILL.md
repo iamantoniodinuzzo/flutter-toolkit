@@ -33,10 +33,12 @@ Se manca Node.js, un transcript accessibile o un formato riconosciuto, usa solo 
 Prima delle sei domande, esegui:
 
 ```bash
-node "<base directory di questa skill>/scripts/session-evidence.js" --agent <claude|codex>
+node "<base directory di questa skill>/scripts/session-evidence.js" --agent <claude|codex> [--session <id> | --transcript <path>]
 ```
 
 Usa il percorso **assoluto** (la base directory è mostrata quando la skill viene caricata): funziona da qualsiasi cwd, nessun `cd`. In alternativa i wrapper `scripts/session-evidence.sh` / `.ps1`, sempre col percorso risolto.
+
+`--session`/`--transcript` scelgono una sessione al posto dell'euristica (ordine sotto). `diff:` interroga git nel `cwd` **registrato nel transcript**, non in quello della chiamata: se manca o non esiste su disco (fixture, transcript di un'altra macchina) esce `NON RICAVABILE (cwd della sessione assente)` e lanciarlo da dentro il repo non lo cambia. Il `git status` più sotto legge invece il cwd della chiamata.
 
 Legge il transcript `.jsonl` della sessione corrente (e `subagents/` solo per edit riusciti e rifiuti) ed estrae, in forma aggregata e contando per `id` del `tool_use`: tool call falliti (per tool, con il comando eseguito e la riga d'errore — citabili), comandi shell identici eseguiti più di una volta, file rieditati più di due volte (ultimi due segmenti di path), più quattro blocchi:
 
