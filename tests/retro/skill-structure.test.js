@@ -32,6 +32,7 @@ test('SKILL.md sections appear in the decided order', () => {
     '## Passo 0',
     '## Le sei domande',
     '## Ambiente',
+    '## Domanda di chiusura',
     '## Ship handoff',
     '## Persistenza',
     '## Report finale',
@@ -108,6 +109,34 @@ test('Q6-to-proposal rule and the automation routing map are wired to evidence t
   for (const label of ['standardizzazione:', 'repeated user instructions:', 'ripetute in sessione', 'args identici']) {
     assert(scriptsSrc.includes(label), `scripts do not emit "${label}"`);
   }
+});
+
+test('Q2/Q3 actions, closing question and project-issue destination are wired (ADR 0013)', () => {
+  const questions = skill.slice(idx(skill, '## Le sei domande'), idx(skill, '## Ambiente'));
+  assert(questions.includes('**Azione (Q2, Q3)**'), 'Azione paragraph missing');
+  for (const value of ['`issue`', '`test`', '`doc`', '`memoria`', '`nessuna (<motivo>)`']) {
+    assert(questions.includes(value), `Azione value missing: ${value}`);
+  }
+
+  const closing = skill.slice(idx(skill, '## Domanda di chiusura'), idx(skill, '## Ship handoff'));
+  assert(
+    closing.includes('Is there anything else substantial that is worth saving for later from the context of this session?'),
+    'closing question is not verbatim',
+  );
+  assert(closing.includes('reddit.com/r/ClaudeCode/comments/1xjfize'), 'source link missing');
+  assert(closing.includes('attribuzione non verificata'), 'unverified-attribution note missing');
+  assert(closing.includes('Persistenza'), 'closing step does not point to Persistenza');
+
+  const persist = skill.slice(idx(skill, '## Persistenza'), idx(skill, '## Report finale'));
+  assert(/\| Issue nel repo del progetto \|.*\| Proposta — aspetta l'ok \|/.test(persist), 'project-issue row missing');
+  assert(persist.includes('non esegue `gh issue create`'), 'project-issue rule must forbid gh issue create');
+
+  const report = skill.slice(idx(skill, '## Report finale'), idx(skill, '## Anti-patterns'));
+  assert(report.includes('Issue da aprire') && report.includes('Azione:'), 'report format misses the new lines');
+  assert(report.includes('max 3'), 'issue pool cap missing');
+
+  const anti = skill.slice(idx(skill, '## Anti-patterns'));
+  assert(anti.includes('nel repo del progetto') && anti.includes('nessuna (<motivo>)'), 'anti-patterns not extended');
 });
 
 test('the writing reference carries attribution, a 40-60 line body and the MIT text', () => {
