@@ -12,7 +12,7 @@ Le soglie sono costanti in `scripts/retro-lens.js`; qui compaiono per nome, mai 
 | tool economy | un `tool_result` sopra `TOOL_RESULT_CHARS`, una troncatura del runtime, o una rilettura senza Edit riuscito in mezzo | costoso | ridurre ciò che entra nel contesto: lettura con `offset`/`limit`, comando con output ristretto |
 | automated checks | sorgenti modificati e (nessun check, o file toccati dopo l'ultimo check, o almeno `CHECK_FAILED_MIN` check falliti) | attrito | far girare il check dopo l'edit, non a fine sessione |
 | navigation | almeno `NAV_EMPTY_SEARCHES` ricerche a vuoto, oppure almeno `NAV_READ_MISSES` Read su path inesistente | attrito | un puntatore di contesto che dica dove vive ciò che l'agente ha cercato a vuoto |
-| global agents.md | totale delle istruzioni caricate ≥ `AGENTS_MD_TOTAL_CHARS` | strutturale | segnalare la dimensione e rinviare a `tune-setup` per il giudizio sul contenuto |
+| global agents.md | totale delle istruzioni caricate ≥ `AGENTS_MD_TOTAL_CHARS` | strutturale | handoff a `tune-setup` con il comando stampato nella riga (`--surface memory-index` se il file più grande è la memoria nativa, altrimenti `--surface istruzioni`) e l'elenco file/dimensioni (`AGENTS_MD_LIST_MAX` file al massimo); `retro` non legge i file e non giudica il contenuto |
 
 Il tetto di righe del blocco (evidenze, non proposte) è `AMBIENTE_LINE_CAP`: se il blocco è troncato, le righe omesse non sono «nessun segnale». La sottocategoria del tag `environment` è il nome del segnale con i trattini (`information-access`, `global-agents-md`).
 

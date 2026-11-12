@@ -23,5 +23,9 @@ Ricorda: `skill-structure.test.js` copre ordine e cablaggio, questa lista copre 
 | 15 | Al massimo 3 bozze in `Issue da aprire`, pool separato da `Proposed` (le eccedenti in `No action`) | fixture con più di 3 voci `issue` e 3 proposte | |
 | 16 | Nessun `gh issue create` e nessuna lettura di template di issue nel transcript della retro | transcript della retro | |
 | 17 | La domanda di chiusura è posta alla lettera e non ripete voci già in `Applied`/`Proposed`/`Azione:` | leggere il report | |
+| 18 | Una proposta `config`/`knowledge` su un vincolo meccanico (tetto, pattern, percorso) è un hook, uno script o un job CI, non una riga di prosa | fixture con una violazione numerica ripetuta | |
+| 19 | Una regola esistente che non è scattata parte dalla riformulazione del puntatore, non dallo spostamento del contenuto | fixture con una regola ignorata | |
+| 20 | Una proposta che sposta una regola in una skill porta `prova:` e `ripristino:` | leggere la proposta | |
+| 21 | Con `global agents.md` acceso il report riporta il comando di handoff e l'elenco file; nessuna `Read` sui file di istruzioni | fixture con totale ≥ soglia; transcript della retro | |
 
 Esito della run: data, fixture usata, versione della skill, righe `KO` (se presenti).
