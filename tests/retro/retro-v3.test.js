@@ -398,6 +398,33 @@ test('ambiente/navigation: 2 empty searches stay silent, the 3rd fires; one Read
   assert.doesNotMatch(out, /Read x1/); // the Read miss left Q5's error list
 });
 
+test('ambiente/navigation: a content-mode Grep with lines is not empty; literal no-match text is (#103)', () => {
+  const env = makeEnv();
+  const grep = (n, text, tr) => [
+    use(env, 'n1', ago(T0 - n * 1000), `n${n}`, 'Grep', { pattern: `p${n}`, output_mode: 'content' }),
+    result(env, 'n1', ago(T0 - n * 1000), `n${n}`, text, false, tr ? { toolUseResult: tr } : undefined),
+  ];
+  const three = (make) => [1, 2, 3].flatMap((n) => make(n));
+  const hits = { mode: 'content', numFiles: 0, filenames: [], numLines: 4, content: 'a.dart:1:x' };
+  const none = { mode: 'content', numFiles: 0, filenames: [], numLines: 0, content: '' };
+
+  // content mode reports numFiles 0 even when it found lines
+  write(env, 'n1', three((n) => grep(n, 'a.dart:1:x', hits)));
+  assert.match(run(env, ['--session', 'n1']), /^ambiente: nessun segnale$/m);
+
+  // count mode with matches
+  write(env, 'n1', three((n) => grep(n, 'a.dart:5', { mode: 'count', numFiles: 1, filenames: [], numMatches: 5, content: 'a.dart:5' })));
+  assert.match(run(env, ['--session', 'n1']), /^ambiente: nessun segnale$/m);
+
+  // truly empty results fire
+  write(env, 'n1', three((n) => grep(n, 'No matches found', none)));
+  assert.match(run(env, ['--session', 'n1']), /navigation \[attrito\]: 3 ricerche a vuoto/);
+
+  // a record without a structured toolUseResult: the literal text is enough
+  write(env, 'n1', three((n) => grep(n, 'No matches found')));
+  assert.match(run(env, ['--session', 'n1']), /navigation \[attrito\]: 3 ricerche a vuoto/);
+});
+
 test('ambiente/automated checks: sources edited with no check, or after the last check, or 2 failed checks', () => {
   const env = makeEnv();
   write(env, 'a5', edit(env, 'a5', 1, src(env)));
