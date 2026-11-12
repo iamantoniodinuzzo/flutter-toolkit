@@ -32,6 +32,8 @@ function fixture(t) {
   return { root, cwd, env, write, run, timestamp };
 }
 
+// Legacy shape: `function_call exec_command` records. Real rollouts do not contain them (see the
+// real-shape tests at the end of this file); the parser still accepts them.
 test('Codex pairs errors with calls, repeated shell commands and successful patch edits', t => {
   const f = fixture(t);
   const events = [];
@@ -107,4 +109,67 @@ test('large Codex metadata can be discovered without parsing entire rollouts', t
   const record = JSON.parse(fs.readFileSync(file, 'utf8')); record.payload.base_instructions = 'x'.repeat(100000);
   fs.writeFileSync(file, JSON.stringify(record));
   assert.match(f.run(['--agent', 'codex', '--session', 'large']), /session: large/);
+});
+
+// --- real rollout shape (#88) ---------------------------------------------------------------
+// tests/retro/fixtures/codex-real-shape.jsonl is reduced from real rollouts (CLI 0.155 - 0.167):
+// shell runs are `exec` custom tool calls plus one CommandExecution event per command run, edits
+// are FileChange events (and the same patch as a JS string with literal \n inside the exec body).
+const REAL = path.join(__dirname, 'fixtures', 'codex-real-shape.jsonl');
+
+test('Codex real shape: commands, exit status and edits are read from CommandExecution / FileChange (#88)', t => {
+  const f = fixture(t);
+  const out = f.run(['--agent', 'codex', '--transcript', REAL]);
+  assert.match(out, /tool errors: 3/);
+  assert.match(out, /exec_command x3 `dart analyze` → Error: undefined name x/);
+  assert.match(out, /x3 dart analyze/);
+  // each patch is logged as a FileChange and inside the exec body: counted once, rename included
+  for (const file of ['lib/auth.dart', 'lib/new.dart', 'lib/old.dart', 'lib/renamed.dart']) {
+    assert.match(out, new RegExp(`x3 ${file.replace('.', '\.')}\n`), file);
+  }
+  assert.doesNotMatch(out, /partial Codex evidence/);
+  assert.doesNotMatch(out, /cli_version .* outside the observed range/);
+});
+
+// A rollout line list written straight to disk: the `write` helper wraps everything as response_item.
+function rollout(f, id, version, records) {
+  const dir = path.join(f.env.CODEX_HOME, 'sessions', '2026', '10', '10');
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, `rollout-${id}.jsonl`);
+  const ts = new Date().toISOString();
+  const meta = { type: 'session_meta', timestamp: ts, payload: { id, cwd: f.cwd, cli_version: version } };
+  fs.writeFileSync(file, [meta, ...records.map(r => ({ timestamp: ts, ...r }))].map(r => JSON.stringify(r)).join('\n') + '\n');
+  return file;
+}
+const execCall = (id, input) => ({ type: 'response_item', payload: { type: 'custom_tool_call', call_id: id, name: 'exec', input } });
+const execOut = (id, text) => ({ type: 'response_item', payload: { type: 'custom_tool_call_output', call_id: id, output: [{ type: 'input_text', text }] } });
+const commandRan = (id, exit) => ({ type: 'event_msg', payload: { type: 'item_completed', item: {
+  type: 'CommandExecution', id, command: ['bash', '-lc', 'true'], status: exit ? 'failed' : 'completed', exit_code: exit, aggregated_output: '' } } });
+const patchBody = '*** Begin Patch\n*** Update File: lib/a.dart\n*** Move to: lib/b.dart\n@@\n-x\n+y\n*** End Patch';
+
+test('Codex without FileChange events falls back to the patch in the exec body, with literal \n; a failed script adds none (#88)', t => {
+  const f = fixture(t);
+  const records = [commandRan('c1', 0)];
+  for (let i = 0; i < 3; i++) {
+    records.push(execCall(`p${i}`, `const patch = "${patchBody}";\ntext(await tools.apply_patch(patch));`), execOut(`p${i}`, 'Script completed'));
+  }
+  records.push(execCall('bad', `const patch = "${patchBody}";`), execOut('bad', 'Script failed\nSyntaxError'));
+  const out = f.run(['--agent', 'codex', '--transcript', rollout(f, 'fallback', '0.165.0', records)]);
+  assert.match(out, /x3 lib\/a\.dart\n/);
+  assert.match(out, /x3 lib\/b\.dart\n/);
+  assert.doesNotMatch(out, /partial Codex evidence/);
+});
+
+test('Codex exec calls with no CommandExecution events stay unsupported, so the partial warning is truthful (#88)', t => {
+  const f = fixture(t);
+  const file = rollout(f, 'old-shape', '0.165.0', [execCall('e1', 'text(await tools.exec_command({cmd:"ls"}));'), execOut('e1', 'Script completed')]);
+  assert.match(f.run(['--agent', 'codex', '--transcript', file]), /WARNING: partial Codex evidence \(0 malformed records, 1 unsupported/);
+});
+
+test('Codex cli_version 0.153.4 - 0.167.0 is inside the observed range; 0.150.0 and 0.168.0 are not (#88)', t => {
+  const f = fixture(t);
+  for (const [version, outside] of [['0.153.4', false], ['0.166.0', false], ['0.167.0', false], ['0.150.0', true], ['0.168.0', true]]) {
+    const out = f.run(['--agent', 'codex', '--transcript', rollout(f, `v-${version}`, version, [])]);
+    assert.equal(/outside the observed range/.test(out), outside, version);
+  }
 });
