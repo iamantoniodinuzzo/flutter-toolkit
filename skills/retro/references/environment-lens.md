@@ -39,6 +39,6 @@ Lo stack è rilevato dal solo transcript (`stack: flutter` nell'header del blocc
 Ogni proposta dichiara `repo:`, derivato dalla prova, mai da un default:
 
 - prova sotto il cwd della sessione (edit, comandi, rifiuti) → il repo di quel cwd;
-- l'attrito risale a una skill del toolkit → `iamantoniodinuzzo/claude-flutter`, issue cross-repo con `--repo` esplicito (tabella di Persistenza);
+- l'attrito risale a una skill del toolkit → `iamantoniodinuzzo/flutter-toolkit`, issue cross-repo con `--repo` esplicito (tabella di Persistenza);
 - accesso o permesso a livello utente (MCP non autenticato, comando assente sulla macchina) → configurazione utente, non un repo;
 - il transcript non lo dice → `repo: da confermare`.

@@ -1,4 +1,4 @@
-<!-- source: local (claude-flutter) -->
+<!-- source: local (flutter-toolkit) -->
 # Rebuild Isolation — Beyond Riverpod `.select()`
 
 **Goal:** Keep the repaint/rebuild blast radius of any state change as small as

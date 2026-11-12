@@ -101,9 +101,9 @@ async function main() {
     console.log('Claude: plugin and skill validation passed');
     cli(codex, ['plugin', 'marketplace', 'add', source, '--json'], env, cwd);
     console.log('Codex: local marketplace registered');
-    cli(codex, ['plugin', 'add', 'flutter-toolkit@claude-flutter', '--json'], env, cwd);
+    cli(codex, ['plugin', 'add', 'flutter-toolkit@flutter-toolkit', '--json'], env, cwd);
     console.log('Codex: plugin installed');
-    const inventory = JSON.parse(cli(codex, ['plugin', 'list', '--marketplace', 'claude-flutter', '--json'], env, cwd));
+    const inventory = JSON.parse(cli(codex, ['plugin', 'list', '--marketplace', 'flutter-toolkit', '--json'], env, cwd));
     assert(JSON.stringify(inventory).includes('flutter-toolkit'), 'Codex marketplace did not load the plugin');
     const result = await loadedSkills(codex, env, cwd);
     const groups = result.data || [];

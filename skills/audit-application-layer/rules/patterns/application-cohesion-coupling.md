@@ -1,4 +1,4 @@
-<!-- source: local (claude-flutter) -->
+<!-- source: local (flutter-toolkit) -->
 # Application Layer — Cohesion & Coupling Rules
 
 **Goal:** Notifiers/services that orchestrate exactly one use-case family, and

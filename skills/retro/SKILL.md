@@ -118,11 +118,11 @@ Route each learning to exactly one destination:
 | Memoria nativa autorizzata; apprendimenti nel report se assente | Default. Serve *a volte*, dipende dal contesto della sessione (pattern scoperto, gotcha, preferenza) | Solo se consentito dall'host e dalle autorizzazioni correnti |
 | Config del progetto target (`CLAUDE.md` / `.claude/settings.json` / hooks / `agents/`) | Convenzione permanente che deve guidare *ogni* sessione futura su questo repo | Proposta — aspetta l'ok |
 | Automation spec (skill / hook / slash command / subagent) | Pattern ripetuto che dovrebbe diventare automazione riutilizzabile | Proposta — aspetta l'ok |
-| Issue cross-repo su `iamantoniodinuzzo/claude-flutter` | L'attrito risale a una skill del toolkit stesso, non al progetto target | Proposta — aspetta l'ok |
+| Issue cross-repo su `iamantoniodinuzzo/flutter-toolkit` | L'attrito risale a una skill del toolkit stesso, non al progetto target | Proposta — aspetta l'ok |
 
 `.claude/rules/` con frontmatter `paths:` **non** è una destinazione a basso costo: viene caricato all'avvio indipendentemente dallo scoping ([claude-code#16299](https://github.com/anthropics/claude-code/issues/16299)), quindi non risparmia contesto rispetto a `CLAUDE.md`. Non instradarci nulla per motivi di token.
 
-**Issue cross-repo**: `gh issue create --repo iamantoniodinuzzo/claude-flutter`, con `--repo` **sempre esplicito** — non va mai dedotto dal `git remote` locale, che punta al progetto target, non al toolkit. Sempre "Proposta — aspetta l'ok": aprire una issue pubblica su un altro repo non è mai un default silenzioso. `tune-setup` può produrre la stessa destinazione in modo indipendente, sulla propria evidenza — non c'è canale di handoff tra le due skill.
+**Issue cross-repo**: `gh issue create --repo iamantoniodinuzzo/flutter-toolkit`, con `--repo` **sempre esplicito** — non va mai dedotto dal `git remote` locale, che punta al progetto target, non al toolkit. Sempre "Proposta — aspetta l'ok": aprire una issue pubblica su un altro repo non è mai un default silenzioso. `tune-setup` può produrre la stessa destinazione in modo indipendente, sulla propria evidenza — non c'è canale di handoff tra le due skill.
 
 **Prima di scrivere nella memoria nativa:**
 Usa solo una destinazione offerta dall'agente e autorizzata. Se assente, lascia gli apprendimenti nel report; non creare `MEMORY.md` o altri sostituti. I passi seguenti su `MEMORY.md` si applicano solo alla memoria Claude quando presente.

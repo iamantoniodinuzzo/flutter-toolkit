@@ -1,4 +1,4 @@
-<!-- source: local (claude-flutter) -->
+<!-- source: local (flutter-toolkit) -->
 ## Unused assets (ASSET-03)
 
 **Goal:** Report assets that ship in every build but are never loaded.

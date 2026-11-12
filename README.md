@@ -1,4 +1,4 @@
-# claude-flutter
+# flutter-toolkit
 
 [![Version](https://img.shields.io/badge/version-3.13.0-blue)](package.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -17,7 +17,7 @@ Skills and agents that turn any coding agent into a disciplined **Senior Flutter
 `skills/` matches the [skills.sh](https://www.skills.sh) flat catalog layout (`skills/<name>/SKILL.md`) — no extra setup needed:
 
 ```bash
-npx skills add iamantoniodinuzzo/claude-flutter
+npx skills add iamantoniodinuzzo/flutter-toolkit
 npx skills update
 ```
 
@@ -29,16 +29,16 @@ Run from the target Flutter project. Select the skill and agent explicitly:
 
 ```bash
 # List available skills without installing them
-npx skills add iamantoniodinuzzo/claude-flutter --list
+npx skills add iamantoniodinuzzo/flutter-toolkit --list
 
 # Install one skill for Codex in the current project
-npx skills add iamantoniodinuzzo/claude-flutter --skill scaffold-feature --agent codex
+npx skills add iamantoniodinuzzo/flutter-toolkit --skill scaffold-feature --agent codex
 
 # Install one skill for Claude Code in the current project
-npx skills add iamantoniodinuzzo/claude-flutter --skill scaffold-feature --agent claude-code
+npx skills add iamantoniodinuzzo/flutter-toolkit --skill scaffold-feature --agent claude-code
 
 # Install one skill for Codex across all your projects
-npx skills add iamantoniodinuzzo/claude-flutter --skill scaffold-feature --agent codex --global
+npx skills add iamantoniodinuzzo/flutter-toolkit --skill scaffold-feature --agent codex --global
 ```
 
 Replace `scaffold-feature` with an active skill from the table below. Project installation is the default; `--global` installs for your user. These flags follow the [skills CLI documentation](https://github.com/vercel-labs/skills#readme). Leave archived `build-filter` unselected.
@@ -47,13 +47,13 @@ Install shared dependencies together when selecting these workflows:
 
 ```bash
 # Full feature audits: orchestrator plus all four layer skills
-npx skills add iamantoniodinuzzo/claude-flutter --agent codex --skill audit-feature audit-domain-layer audit-data-layer audit-application-layer audit-presentation-layer
+npx skills add iamantoniodinuzzo/flutter-toolkit --agent codex --skill audit-feature audit-domain-layer audit-data-layer audit-application-layer audit-presentation-layer
 
 # Widget tests: shared provider patterns come from unit-test
-npx skills add iamantoniodinuzzo/claude-flutter --agent codex --skill generate-widget-tests unit-test
+npx skills add iamantoniodinuzzo/flutter-toolkit --agent codex --skill generate-widget-tests unit-test
 
 # Configuration audit: session parser comes from retro
-npx skills add iamantoniodinuzzo/claude-flutter --agent codex --skill tune-setup retro
+npx skills add iamantoniodinuzzo/flutter-toolkit --agent codex --skill tune-setup retro
 ```
 
 Use `--agent claude-code` for Claude Code, and add `--global` if needed. The native plugins include these dependencies together.
@@ -61,26 +61,26 @@ Use `--agent claude-code` for Claude Code, and add `--global` if needed. The nat
 ### Codex, via native plugin marketplace
 
 ```bash
-codex plugin marketplace add iamantoniodinuzzo/claude-flutter
-codex plugin add flutter-toolkit@claude-flutter
+codex plugin marketplace add iamantoniodinuzzo/flutter-toolkit
+codex plugin add flutter-toolkit@flutter-toolkit
 ```
 
 To install the published release reproducibly, use this alternative:
 
 ```bash
-codex plugin marketplace add iamantoniodinuzzo/claude-flutter --ref v3.11.0
-codex plugin add flutter-toolkit@claude-flutter
+codex plugin marketplace add iamantoniodinuzzo/flutter-toolkit --ref v3.11.0
+codex plugin add flutter-toolkit@flutter-toolkit
 ```
 
-The native Codex manifest distributes the 21 active skills from the same catalog. The marketplace follows the repository revision you install; use `--ref v<version>` on `marketplace add` to pin a published release. For editable files instead, use `npx skills add iamantoniodinuzzo/claude-flutter -a codex`.
+The native Codex manifest distributes the 21 active skills from the same catalog. The marketplace follows the repository revision you install; use `--ref v<version>` on `marketplace add` to pin a published release. For editable files instead, use `npx skills add iamantoniodinuzzo/flutter-toolkit -a codex`.
 
 Install one channel per agent to avoid duplicate skills.
 
 ### Claude Code, via plugin marketplace (stable, pinned)
 
 ```bash
-claude plugin marketplace add iamantoniodinuzzo/claude-flutter
-claude plugin install flutter-toolkit@claude-flutter
+claude plugin marketplace add iamantoniodinuzzo/flutter-toolkit
+claude plugin install flutter-toolkit@flutter-toolkit
 ```
 
 Or via `.claude/settings.json` (team/project scope):
@@ -88,15 +88,15 @@ Or via `.claude/settings.json` (team/project scope):
 ```json
 {
   "extraKnownMarketplaces": {
-    "claude-flutter": {
+    "flutter-toolkit": {
       "source": {
         "source": "github",
-        "repo": "iamantoniodinuzzo/claude-flutter"
+        "repo": "iamantoniodinuzzo/flutter-toolkit"
       }
     }
   },
   "enabledPlugins": {
-    "flutter-toolkit@claude-flutter": true
+    "flutter-toolkit@flutter-toolkit": true
   }
 }
 ```
@@ -104,6 +104,28 @@ Or via `.claude/settings.json` (team/project scope):
 > Pins tagged releases — use this in Claude Code for reproducible versions instead of tracking `master` HEAD.
 
 Install issues (stuck versions, SSH errors, how auto-update resolves)? See [ai_docs/TROUBLESHOOTING.md](ai_docs/TROUBLESHOOTING.md).
+
+### Migrating from `claude-flutter`
+
+The repository and marketplace used to be called `claude-flutter` (plugin ID `flutter-toolkit@claude-flutter`). They are now `flutter-toolkit`, the same name as the plugin, so the install ID is `flutter-toolkit@flutter-toolkit`. The plugin name and the command prefix (`/flutter-toolkit:<skill>`, `$flutter-toolkit:<skill>`) did not change.
+
+Claude Code identifies a marketplace by its `name`, so an existing install does not move over by itself. Remove the old one and add the new one:
+
+```bash
+# Claude Code
+claude plugin uninstall flutter-toolkit@claude-flutter
+claude plugin marketplace remove claude-flutter
+claude plugin marketplace add iamantoniodinuzzo/flutter-toolkit
+claude plugin install flutter-toolkit@flutter-toolkit
+
+# Codex
+codex plugin remove flutter-toolkit@claude-flutter
+codex plugin marketplace remove claude-flutter
+codex plugin marketplace add iamantoniodinuzzo/flutter-toolkit
+codex plugin add flutter-toolkit@flutter-toolkit
+```
+
+Removing a marketplace also uninstalls its plugins and deletes their data and options, so note any plugin settings first. If you declare the plugin in `.claude/settings.json`, rename the `extraKnownMarketplaces` key and the `enabledPlugins` key as in the snippet above. `npx skills add` users only need the new slug; GitHub forwards the old repository URL.
 
 ---
 
@@ -144,7 +166,7 @@ Claude Code and Codex packaging, discovery, resource resolution, and helper beha
 - Resolve scripts and references from each installed skill directory, not from the Flutter app's cwd.
 - Questions can be plain text. Delegated audits run sequentially when subagents are absent or not permitted.
 - `audit-feature` needs the per-layer audit skills for the layers present; `generate-widget-tests` needs `unit-test` for its shared provider patterns; `tune-setup` needs `retro` for session evidence. Install these dependencies together through skills.sh. Missing dependencies are reported as unavailable checks, never clean results.
-- `retro` reads Claude or Codex transcripts (`--agent auto|claude|codex`). Missing, ambiguous, obsolete, malformed, and opaque records limit the report. Claude-only config metrics are unavailable on Codex. Retro v3 on Codex is best-effort: the parser does not yet read the real rollout format ([bug](https://github.com/iamantoniodinuzzo/claude-flutter/issues/88)), so it can report 0 errors and 0 repeats with a partial-evidence warning, the environment block is "not evaluated" (never "no signal"), and the session diff uses only the git anchor from `session_meta`. The new categories and the diff are verified on Claude.
+- `retro` reads Claude or Codex transcripts (`--agent auto|claude|codex`). Missing, ambiguous, obsolete, malformed, and opaque records limit the report. Claude-only config metrics are unavailable on Codex. Retro v3 on Codex is best-effort: the parser does not yet read the real rollout format ([bug](https://github.com/iamantoniodinuzzo/flutter-toolkit/issues/88)), so it can report 0 errors and 0 repeats with a partial-evidence warning, the environment block is "not evaluated" (never "no signal"), and the session diff uses only the git anchor from `session_meta`. The new categories and the diff are verified on Claude.
 - `tune-setup` inspects the current agent's actual configuration. Learnings use authorized native memory when available; otherwise they stay in the report.
 - `second-opinion` needs Node.js and an authenticated provider CLI. It sends pertinent context through stdin in an isolated session. Missing providers, timeouts, and authentication failures never switch providers silently.
 

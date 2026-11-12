@@ -1,4 +1,4 @@
-<!-- source: local (claude-flutter) -->
+<!-- source: local (flutter-toolkit) -->
 # Domain Layer — Cohesion & Coupling Rules
 
 **Goal:** A domain layer that is the innermost, most stable ring of the
