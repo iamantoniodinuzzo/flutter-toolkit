@@ -70,6 +70,8 @@ Answer all six, in this order, as separate sections:
 1. **Least confident** — Which parts of what I just produced am I least sure about? Rank top 2-3. For each: what exactly is uncertain, what would verify it (a grep, a doc, a test), and verify it NOW if it costs < 2 minutes.
 2. **What the user is missing** — The biggest thing they don't realize about the current situation. Structural gaps, not details: missing artifacts, implicit contracts, things that live only in this conversation and will be lost.
 3. **Most likely 3-month failure** — If this work breaks in 3 months, the single most probable cause. Pick ONE primary candidate with the failure mechanism spelled out, plus a runner-up. Name the cheapest mitigation.
+   **Azione (Q2, Q3)**: ogni voce di Q2 e Q3 chiude con una riga `Azione:` che vale `issue` · `test` · `doc` · `memoria` · `nessuna (<motivo>)`. `issue` porta una bozza di due righe (titolo; che cosa deve essere vero a lavoro finito) e va in `Issue da aprire`; `test` e `doc` nominano il file; `memoria` rimanda alla voce `Applied`/`Reported`. In Q3 la mitigazione più economica è l'azione della voce. `nessuna (<motivo>)` è un valore valido: scegli l'azione che il fatto richiede, non una per riempire il campo.
+
 4. **Unstated assumptions** — Decisions I made silently: scale, locale, edge-case behavior, ordering, naming. List each as "assumed X, never asked".
 5. **Smoother session** — Cite concrete events from the Passo 0 output: a specific failed tool call, a command run twice, a file rewritten repeatedly, something the user had to ask for a second time. No entry without a matching event. If Passo 0 found genuinely nothing (0 errors, 0 repeats) and you have no other verifiable friction, say so plainly instead of inventing a "could have been smoother" — that is itself a valid answer, not a hedge.
 6. **What worked well** — Name one concrete pattern from this session worth repeating: a skill invocation that paid off, a sequence that avoided rework, a decision that held up under later pressure. Must name a specific artifact (skill name, tool sequence, file, commit) — no generic praise ("things went smoothly"). If nothing genuinely stands out, say so plainly instead of manufacturing a compliment — same standard Q5 already applies to its negative case.
@@ -95,6 +97,12 @@ Ogni proposta porta un livello di severità, in questo ordine (spareggio: più e
 
 La tabella vale per **tutte** le proposte, anche dei tag non ambiente.
 
+## Domanda di chiusura
+
+Dopo Q6 e il blocco `Ambiente`, poniti alla lettera, in inglese: «Is there anything else substantial that is worth saving for later from the context of this session?» (formulazione da un post di r/ClaudeCode, <https://www.reddit.com/r/ClaudeCode/comments/1xjfize/one_question_i_ask_my_coding_agent_before_closing.json>; attribuzione non verificata, la pagina risponde 403 ai client automatici).
+
+Rispondi nella lingua della conversazione, solo con ciò che non sta già in `Applied`, `Reported`, `Proposed` o in un'`Azione:` di Q2/Q3. Ogni voce va in una destinazione di «Persistenza». Il passo è chiuso quando ogni voce ha una destinazione, oppure c'è la riga «nulla da aggiungere».
+
 ## Ship handoff
 
 Dal blocco `diff:` e dall'output di `git status`/branch del Passo 0, con git in sola lettura:
@@ -119,6 +127,7 @@ Route each learning to exactly one destination:
 | Config del progetto target (`CLAUDE.md` / `.claude/settings.json` / hooks / `agents/`) | Convenzione permanente che deve guidare *ogni* sessione futura su questo repo | Proposta — aspetta l'ok |
 | Automation spec (skill / hook / slash command / subagent) | Pattern ripetuto che dovrebbe diventare automazione riutilizzabile | Proposta — aspetta l'ok |
 | Issue cross-repo su `iamantoniodinuzzo/flutter-toolkit` | L'attrito risale a una skill del toolkit stesso, non al progetto target | Proposta — aspetta l'ok |
+| Issue nel repo del progetto | Lavoro sul deliverable scoperto da Q2, Q3 o dalla domanda di chiusura | Proposta — aspetta l'ok |
 
 `.claude/rules/` con frontmatter `paths:` **non** è una destinazione a basso costo: viene caricato all'avvio indipendentemente dallo scoping ([claude-code#16299](https://github.com/anthropics/claude-code/issues/16299)), quindi non risparmia contesto rispetto a `CLAUDE.md`. Non instradarci nulla per motivi di token.
 
@@ -130,7 +139,9 @@ Usa solo una destinazione offerta dall'agente e autorizzata. Se assente, lascia 
 2. Se l'indice è cresciuto e più voci coprono lo stesso tema, consolidale in una.
 3. Nessun cap numerico rigido — la cifra "solo le prime 200 righe si caricano" circola su Reddit ma non è verificata in questo ambiente; non progettare intorno a un numero che non hai controllato.
 
-Le proposte per config del progetto, automation spec, o issue cross-repo restano **proposte**: presentale, non applicarle senza ok esplicito. Le proposte `environment` non sono mai «Applied» e dichiarano il repo di atterraggio (`repo: da confermare` se il transcript non lo dice).
+**Issue nel repo del progetto**: retro presenta titolo e bozza e non esegue `gh issue create`; non legge nemmeno i template di issue del progetto (invariante di «Ambiente»). La crea l'utente o la sua skill di issue. Non è la issue cross-repo: quella riguarda l'attrito di una skill del toolkit.
+
+Le proposte per config del progetto, automation spec, issue cross-repo o issue nel repo del progetto restano **proposte**: presentale, non applicarle senza ok esplicito. Le proposte `environment` non sono mai «Applied» e dichiarano il repo di atterraggio (`repo: da confermare` se il transcript non lo dice).
 
 Per un audit più ampio della configurazione (CLAUDE.md, settings, hooks, agents/, skill-trigger-miss), fuori dal perimetro di questa skill: esegui `tune-setup` — su richiesta esplicita, non da qui.
 
@@ -147,16 +158,24 @@ Proposed — aspetto il tuo ok (ordinate per severità: bloccante, costoso, attr
 2. [automation] [strutturale] <pattern ripetuto, con conteggio da Passo 0> → skill spec: <nome>
 3. [environment: tool-economy] [costoso] <evidenza dal blocco Ambiente> → config progetto: <cosa> (repo: <dove atterra | da confermare>)
 
+Issue da aprire — aspetto il tuo ok (max 3, fuori dal cap di Proposed)
+4. [issue] <titolo> — <che cosa deve essere vero a lavoro finito> (da Q3 | da Q2 | da chiusura)
+
 No action
-4. [friction] <cosa> — già coperto da <dove>
-5. [environment: navigation] <proposta oltre il cap> — oltre il cap di 3
+5. [friction] <cosa> — già coperto da <dove>
+6. [environment: navigation] <proposta oltre il cap> — oltre il cap di 3
+7. [issue] <titolo> — oltre il cap di 3 issue
 ```
+
+Ogni voce di Q2 e Q3 nel report porta `Azione: issue → Issue da aprire n | test: <file> | doc: <file> | memoria → Applied n | nessuna (<motivo>)`.
 
 Categorie: `skill gap` (l'agente ha sbagliato o ha impiegato più tentativi) · `friction` (passo manuale ripetuto, cosa chiesta esplicitamente che doveva essere automatica) · `knowledge` (fatto su progetto/preferenze che l'agente non sapeva) · `automation` (pattern ripetuto che potrebbe diventare skill/hook/slash command/subagent — include esplicitamente: istruzioni ripetute che potrebbero diventare uno slash command, un workflow che dovrebbe diventare una skill o un subagent dedicato; instradamento: istruzione in `repeated user instructions:` o skill con `args identici` → slash command · workflow ripetuto → skill · competenza di dominio ricorrente → subagent · convenzione di progetto → `[knowledge]` verso config progetto; solo il primo ha un contatore, gli altri richiedono una voce già in `MEMORY.md` più l'evento di sessione) · `environment` (solo con prova dal blocco `Ambiente`, sottocategoria tra parentesi: `tool-economy`, `navigation`, `automated-checks`, `information-access`, `global-agents-md`).
 
 Cap unico: **max 3 proposte** in "Proposed", ambiente incluso: restano le 3 di severità maggiore, le altre vanno in `No action` con il motivo. Un `automation` senza costo misurato è «strutturale». Più segnali che portano a una sola proposta contano una voce. Le scritture autorizzate "Applied" nella memoria nativa non contano nel cap — sono già fatte, non richiedono slot di attenzione dell'utente.
 
-Un fatto compare **una sola volta** nel report come proposta, e vince `Ambiente`: Q1 può nominarlo (verificarlo ora non è una proposta), Q5 tiene solo il comportamento dell'agente. Un'istruzione che è sia in `ripetute in sessione:` sia in `repeated user instructions:` è la proposta `automation`: Q5 non la riconta.
+Le bozze `issue` hanno un pool proprio: **max 3** in `Issue da aprire`, nell'ordine di provenienza Q3, Q2, chiusura; le altre vanno in `No action` con il motivo. Il pool non consuma slot del cap di `Proposed` e viceversa.
+
+Un fatto compare **una sola volta** nel report: un punto già in `Proposed`, `Applied` o `Reported` non diventa anche bozza di issue, e la domanda di chiusura non ripete nulla di quanto sta nelle `Azione:` di Q2/Q3. Come proposta vince `Ambiente`: Q1 può nominarlo (verificarlo ora non è una proposta), Q5 tiene solo il comportamento dell'agente. Un'istruzione che è sia in `ripetute in sessione:` sia in `repeated user instructions:` è la proposta `automation`: Q5 non la riconta.
 
 ## Anti-patterns
 
@@ -164,7 +183,8 @@ Un fatto compare **una sola volta** nel report come proposta, e vince `Ambiente`
 - Listing 10 shallow risks instead of 2 deep ones.
 - Generic advice detached from session artifacts.
 - **Inventare un fallimento per Q5 che non compare nell'output di Passo 0.**
-- **Scrivere in `CLAUDE.md`, `.claude/rules/`, creare una skill, o aprire una issue cross-repo senza ok esplicito.**
+- **Scrivere in `CLAUDE.md`, `.claude/rules/`, creare una skill, o aprire una issue (cross-repo o nel repo del progetto) senza ok esplicito.**
+- **Inventare un'azione per riempire `Azione:`**: `nessuna (<motivo>)` è un valore valido.
 - **Duplicare una voce di memoria che esiste già invece di aggiornarla.**
 - **Dichiarare "nulla da migliorare" quando Passo 0 ha trovato errori o ripetizioni non ancora spiegati.**
 - **Leggere un file di configurazione del progetto per costruire una proposta ambiente** (è il lavoro di `tune-setup`).

@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted (wayfinder ticket #64, map #57)
+Accepted (wayfinder ticket #64, map #57). Amended by
+[ADR 0013](0013-retro-q2-q3-actions-and-closing-question.md): a destination "Issue nel repo del
+progetto" and a separate pool of at most 3 issue drafts; the cap of 3 for `Proposed` is unchanged.
 
 ## Context
 
