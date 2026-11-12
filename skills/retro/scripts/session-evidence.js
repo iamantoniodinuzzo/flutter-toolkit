@@ -350,7 +350,7 @@ function firstLine(text, maxLen) {
 
 // Codex CLI versions whose rollout format was observed (research ticket #79); outside this
 // range the evidence is flagged, not trusted silently (ticket "Retro v3 su Codex").
-const CODEX_OBSERVED = { min: [0, 153, 4], max: [0, 165, 0] };
+const CODEX_OBSERVED = { min: [0, 153, 4], max: [0, 167, 0] };
 
 function readCodexMeta(raw) {
   for (const line of raw.split('\n')) {

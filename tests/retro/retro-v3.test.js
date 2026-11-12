@@ -693,7 +693,7 @@ test('Codex: diff is anchored on session_meta.git.commit_hash; ambiente is decla
 test('Codex: a cli_version outside the observed range carries a WARNING', () => {
   const env = makeEnv();
   const file = codexRollout(env, 'cx2', { cli_version: '0.200.0' });
-  assert.match(run(env, ['--agent', 'codex', '--transcript', file]), /WARNING: Codex cli_version 0\.200\.0 outside the observed range 0\.153\.4 - 0\.165\.0/);
+  assert.match(run(env, ['--agent', 'codex', '--transcript', file]), /WARNING: Codex cli_version 0\.200\.0 outside the observed range 0\.153\.4 - 0\.167\.0/);
 });
 
 // ====================================================== real-shape canary ====
