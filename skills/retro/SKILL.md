@@ -164,7 +164,7 @@ Reported — se la memoria non è disponibile
 
 Proposed — aspetto il tuo ok (ordinate per severità: bloccante, costoso, attrito, strutturale)
 2. [automation] [strutturale] <pattern ripetuto, con conteggio da Passo 0> → skill spec: <nome>
-3. [environment: tool-economy] [costoso] <evidenza dal blocco Ambiente> → config progetto: <cosa> (repo: <dove atterra | da confermare>)
+3. [environment: tool-economy · guard] [costoso] <evidenza dal blocco Ambiente> → config progetto: <cosa> (repo: <dove atterra | da confermare>)
    [knowledge] [strutturale] <vincolo meccanico> → hook: <cosa>
       prova: <domanda in sessione nuova → comportamento atteso> · ripristino: <come tornare indietro>   (solo se sposta una regola)
 
@@ -173,13 +173,13 @@ Issue da aprire — aspetto il tuo ok (max 3, fuori dal cap di Proposed)
 
 No action
 5. [friction] <cosa> — già coperto da <dove>
-6. [environment: navigation] <proposta oltre il cap> — oltre il cap di 3
+6. [environment: navigation · pointer] <proposta oltre il cap> — oltre il cap di 3
 7. [issue] <titolo> — oltre il cap di 3 issue
 ```
 
 Ogni voce di Q2 e Q3 nel report porta `Azione: issue → Issue da aprire n | test: <file> | doc: <file> | memoria → Applied n | nessuna (<motivo>)`.
 
-Categorie: `skill gap` (l'agente ha sbagliato o ha impiegato più tentativi) · `friction` (passo manuale ripetuto, cosa chiesta esplicitamente che doveva essere automatica) · `knowledge` (fatto su progetto/preferenze che l'agente non sapeva) · `automation` (pattern ripetuto che potrebbe diventare skill/hook/slash command/subagent — include esplicitamente: istruzioni ripetute che potrebbero diventare uno slash command, un workflow che dovrebbe diventare una skill o un subagent dedicato; instradamento: istruzione in `repeated user instructions:` o skill con `args identici` → slash command · workflow ripetuto → skill · competenza di dominio ricorrente → subagent · convenzione di progetto → `[knowledge]` verso config progetto; solo il primo ha un contatore, gli altri richiedono una voce già in `MEMORY.md` più l'evento di sessione) · `environment` (solo con prova dal blocco `Ambiente`, sottocategoria tra parentesi: `tool-economy`, `navigation`, `automated-checks`, `information-access`, `global-agents-md`).
+Categorie: `skill gap` (l'agente ha sbagliato o ha impiegato più tentativi) · `friction` (passo manuale ripetuto, cosa chiesta esplicitamente che doveva essere automatica) · `knowledge` (fatto su progetto/preferenze che l'agente non sapeva) · `automation` (pattern ripetuto che potrebbe diventare skill/hook/slash command/subagent — include esplicitamente: istruzioni ripetute che potrebbero diventare uno slash command, un workflow che dovrebbe diventare una skill o un subagent dedicato; instradamento: istruzione in `repeated user instructions:` o skill con `args identici` → slash command · workflow ripetuto → skill · competenza di dominio ricorrente → subagent · convenzione di progetto → `[knowledge]` verso config progetto; solo il primo ha un contatore, gli altri richiedono una voce già in `MEMORY.md` più l'evento di sessione) · `environment` (solo con prova dal blocco `Ambiente`, sottocategoria tra parentesi: `tool-economy`, `navigation`, `automated-checks`, `information-access`, `global-agents-md`), con `· guard` o `· pointer` nel tag secondo `references/environment-lens.md`.
 
 Cap unico: **max 3 proposte** in "Proposed", ambiente incluso: restano le 3 di severità maggiore, le altre vanno in `No action` con il motivo. Un `automation` senza costo misurato è «strutturale». Più segnali che portano a una sola proposta contano una voce. Le scritture autorizzate "Applied" nella memoria nativa non contano nel cap — sono già fatte, non richiedono slot di attenzione dell'utente.
 

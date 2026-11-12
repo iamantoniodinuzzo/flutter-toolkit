@@ -154,6 +154,17 @@ test('proposal shape rules and the agents-md handoff are wired (ADR 0015)', () =
   assert(anti.includes('vincolo meccanico') && anti.includes('handoff a `tune-setup`'), 'anti-patterns not extended');
 });
 
+test('ambiente proposal shape: guard / pointer (#105)', () => {
+  const lens = read('references', 'environment-lens.md');
+  const section = lens.slice(idx(lens, '## Forma della proposta ambiente'), idx(lens, '## Falsi positivi'));
+  for (const needle of ['Forma di comando', 'Fatto mancante', 'PreToolUse', '`guard`', '`pointer`', 'mattpocock/skills', 'Forma della proposta']) {
+    assert(section.includes(needle), `lens section misses: ${needle}`);
+  }
+  const report = skill.slice(idx(skill, '## Report finale'), idx(skill, '## Anti-patterns'));
+  assert(report.includes('· guard]') && report.includes('· pointer]'), 'report template misses the guard/pointer tag');
+  assert(report.includes('`· guard` o `· pointer`') && report.includes('references/environment-lens.md'), 'categories do not point to the lens');
+});
+
 test('the writing reference carries attribution, a 40-60 line body and the MIT text', () => {
   const ref = read('references', 'writing-for-agents.md');
   assert(/^> Adapted from /m.test(ref.split('\n').slice(0, 4).join('\n')));
