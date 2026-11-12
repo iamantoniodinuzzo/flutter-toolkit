@@ -78,9 +78,9 @@ Non creare memoria sostitutiva se manca una destinazione nativa autorizzata. Le 
 | Memoria nativa autorizzata; apprendimenti nel report se assente | Fatto degno di nota ma non abbastanza strutturale da meritare una proposta di config | Solo se consentito dall'host e dalle autorizzazioni correnti |
 | Config del progetto target (`CLAUDE.md` / `.claude/settings.json` / hooks / `agents/`) | Convenzione permanente da correggere, o superficie che questo audit ha segnalato come rotta/stale | Proposta — aspetta l'ok |
 | Automation spec (skill / hook / slash command / subagent) | Pattern ripetuto che dovrebbe diventare automazione riutilizzabile | Proposta — aspetta l'ok |
-| Issue cross-repo su `iamantoniodinuzzo/claude-flutter` | L'attrito risale a una skill del toolkit stesso, non al progetto target | Proposta — aspetta l'ok |
+| Issue cross-repo su `iamantoniodinuzzo/flutter-toolkit` | L'attrito risale a una skill del toolkit stesso, non al progetto target | Proposta — aspetta l'ok |
 
-**Issue cross-repo**: `gh issue create --repo iamantoniodinuzzo/claude-flutter`, con `--repo` **sempre esplicito** — mai dedotto dal `git remote` locale (che punta al progetto target). `retro` di solito intercetta prima l'attrito legato al toolkit (gira ad ogni fine task), ma questo non è esclusivo: `tune-setup` può produrre la stessa destinazione in autonomia, sulla propria evidenza — in particolare dal trigger-miss — perché non esiste canale di handoff tra le due skill.
+**Issue cross-repo**: `gh issue create --repo iamantoniodinuzzo/flutter-toolkit`, con `--repo` **sempre esplicito** — mai dedotto dal `git remote` locale (che punta al progetto target). `retro` di solito intercetta prima l'attrito legato al toolkit (gira ad ogni fine task), ma questo non è esclusivo: `tune-setup` può produrre la stessa destinazione in autonomia, sulla propria evidenza — in particolare dal trigger-miss — perché non esiste canale di handoff tra le due skill.
 
 Cap: **max 5 proposte** in "Proposed" — indipendente dal cap di 3 di `retro` (pool separati, per skill produttrice, non per tipo di destinazione: una issue cross-repo trovata da `retro` conta nel cap di `retro`, la stessa trovata da `tune-setup` conta nel suo). Default pensato come "una per superficie auditata", regolabile se un audit reale lo smentisce.
 

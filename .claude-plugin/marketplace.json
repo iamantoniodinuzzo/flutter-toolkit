@@ -1,5 +1,5 @@
 {
-  "name": "claude-flutter",
+  "name": "flutter-toolkit",
   "owner": {
     "name": "Antonio Di Nuzzo",
     "email": "iamantoniodinuzzo@gmail.com"
@@ -10,8 +10,8 @@
       "description": "Comprehensive suite of Flutter/Dart skills and agents (Riverpod v3, GoRouter, Melos, clean architecture).",
       "source": {
         "source": "github",
-        "repo": "iamantoniodinuzzo/claude-flutter",
-        "ref": "v3.13.0"
+        "repo": "iamantoniodinuzzo/flutter-toolkit",
+        "ref": "v4.0.0"
       },
       "author": {
         "name": "Antonio Di Nuzzo",

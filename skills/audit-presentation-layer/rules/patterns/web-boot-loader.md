@@ -1,4 +1,4 @@
-<!-- source: local (claude-flutter) -->
+<!-- source: local (flutter-toolkit) -->
 ## Web boot loader (WEB-02)
 
 **Goal:** Avoid 3-5 s of blank white page while Flutter web downloads `main.dart.js`, the renderer runtime, fonts and

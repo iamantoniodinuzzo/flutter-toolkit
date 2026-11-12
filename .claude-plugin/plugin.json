@@ -1,13 +1,13 @@
 {
   "name": "flutter-toolkit",
-  "version": "3.13.0",
+  "version": "4.0.0",
   "description": "Comprehensive suite of Flutter/Dart skills and agents (Riverpod v3, GoRouter, Melos, clean architecture).",
   "author": {
     "name": "Antonio Di Nuzzo",
     "email": "iamantoniodinuzzo@gmail.com"
   },
-  "homepage": "https://github.com/iamantoniodinuzzo/claude-flutter",
-  "repository": "https://github.com/iamantoniodinuzzo/claude-flutter",
+  "homepage": "https://github.com/iamantoniodinuzzo/flutter-toolkit",
+  "repository": "https://github.com/iamantoniodinuzzo/flutter-toolkit",
   "license": "MIT",
   "keywords": [
     "flutter",

@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2026-11-12
+
+### Changed
+
+- **Breaking for existing installs:** repository and marketplace renamed `claude-flutter` →
+  `flutter-toolkit`, so the project has one name everywhere. The plugin name and command prefix
+  (`/flutter-toolkit:<skill>`, `$flutter-toolkit:<skill>`) are unchanged; the install ID becomes
+  `flutter-toolkit@flutter-toolkit`. Updated manifests, README, `ai_docs/`, ADRs 0006 and 0009,
+  the `retro` / `tune-setup` cross-repo issue destination and the smoke script. (#106)
+- `scripts/validate-skills.js` now asserts that the Claude marketplace, Codex marketplace and plugin
+  names are identical, so the two-name split cannot return unnoticed.
+
+### Migration
+
+Claude Code identifies a marketplace by its `name`, so existing installs must be re-added. Removing
+a marketplace also deletes its plugins' data and options.
+
+```bash
+claude plugin uninstall flutter-toolkit@claude-flutter
+claude plugin marketplace remove claude-flutter
+claude plugin marketplace add iamantoniodinuzzo/flutter-toolkit
+claude plugin install flutter-toolkit@flutter-toolkit
+```
+
+Codex: `codex plugin remove flutter-toolkit@claude-flutter`, `codex plugin marketplace remove
+claude-flutter`, then `marketplace add` and `plugin add flutter-toolkit@flutter-toolkit`. In
+`.claude/settings.json` rename the `extraKnownMarketplaces` and `enabledPlugins` keys. See the
+README section "Migrating from `claude-flutter`".
+
 ## [3.13.0] - 2026-11-06
 
 ### Added

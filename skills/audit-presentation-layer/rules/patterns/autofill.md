@@ -1,4 +1,4 @@
-<!-- source: local (claude-flutter) -->
+<!-- source: local (flutter-toolkit) -->
 ## Credential-form autofill (AUTOFILL-01..04)
 
 **Goal:** Password managers must recognise credential fields, and must offer to save only after a successful submit.

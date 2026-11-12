@@ -1,4 +1,4 @@
-<!-- source: local (claude-flutter) -->
+<!-- source: local (flutter-toolkit) -->
 # Data Layer — Cohesion & Coupling Rules
 
 **Goal:** Data-layer classes that each own exactly one storage concern, behind

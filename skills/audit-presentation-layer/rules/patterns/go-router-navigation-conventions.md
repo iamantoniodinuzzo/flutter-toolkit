@@ -109,7 +109,7 @@ class MyScreen extends ConsumerWidget {
 - Use `goNamed` to navigate to nested routes.
 - Back navigation must call `context.go(AppRoute.parent.path)`, not `context.pop()`.
 
-<!-- local addition (claude-flutter) — audit rule ROUTER-03 -->
+<!-- local addition (flutter-toolkit) — audit rule ROUTER-03 -->
 ### 8) Page transitions
 
 A common helper disables transitions everywhere (added for the web, where URL navigation should not slide):
