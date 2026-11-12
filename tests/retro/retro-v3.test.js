@@ -338,6 +338,46 @@ test('ambiente/tool economy: a runtime truncation notice fires it', () => {
   assert.match(run(env, ['--session', 'a3']), /1 troncature/);
 });
 
+test('ambiente/tool economy: a foreground timeout fires, a deliberate background run does not (#104)', () => {
+  const env = makeEnv();
+  const tm = (id, n, command, text, tr, input = {}) => [
+    use(env, id, ago(T0 - n * 1000), `t${n}`, 'Bash', { command, ...input }),
+    result(env, id, ago(T0 - n * 1000), `t${n}`, text, false, { toolUseResult: tr }),
+  ];
+  const stop = (id, n, taskId) => [
+    use(env, id, ago(T0 - n * 1000), `s${n}`, 'TaskStop', { task_id: taskId }),
+    result(env, id, ago(T0 - n * 1000), `s${n}`, `Successfully stopped task: ${taskId}`, false),
+  ];
+  const harness = 'Command did not complete within its 120s timeout and was moved to the background (ID: b1).';
+
+  write(env, 'e1', [
+    ...tm('e1', 1, 'grep -r foo .', harness, { backgroundTaskId: 'b1', timedOutAfterMs: 120000 }),
+    ...stop('e1', 2, 'b1'),
+  ]);
+  const out = run(env, ['--session', 'e1']);
+  assert.match(out, /tool economy \[costoso\]: 0 risultati >20000 car\., 0 troncature, 0 riletture, 1 timeout/);
+  assert.match(out, /timeout: Bash grep -r foo \. → 120 s/);
+  assert.match(out, /tool errors: 0/);
+
+  // the harness rewords the phrase and drops the timeout field: the TaskStop alone is enough
+  write(env, 'e1', [
+    ...tm('e1', 1, 'grep -r foo .', 'Moved off to the side (ID: b2).', { backgroundTaskId: 'b2' }),
+    ...stop('e1', 2, 'b2'),
+  ]);
+  assert.match(run(env, ['--session', 'e1']), /1 timeout/);
+
+  // the phrase alone, with no TaskStop, fires
+  write(env, 'e1', tm('e1', 1, 'sleep 300', harness, { backgroundTaskId: 'b4', timedOutAfterMs: 120000 }));
+  assert.match(run(env, ['--session', 'e1']), /1 timeout/);
+
+  // a deliberate run_in_background stopped later stays silent
+  write(env, 'e1', [
+    ...tm('e1', 1, 'npm run dev', 'Command running in background with ID: b3.', { backgroundTaskId: 'b3' }, { run_in_background: true }),
+    ...stop('e1', 2, 'b3'),
+  ]);
+  assert.match(run(env, ['--session', 'e1']), /^ambiente: nessun segnale$/m);
+});
+
 test('ambiente/navigation: 2 empty searches stay silent, the 3rd fires; one Read miss fires', () => {
   const env = makeEnv();
   const search = (n) => [
@@ -354,8 +394,35 @@ test('ambiente/navigation: 2 empty searches stay silent, the 3rd fires; one Read
   ]);
   const out = run(env, ['--session', 'a4']);
   assert.match(out, /navigation \[attrito\]: 0 ricerche a vuoto, 1 Read su path inesistente/);
-  assert.match(out, /attribuiti ad ambiente: 1/);
+  assert.match(out, /attribuiti ad ambiente: 1 \(navigation 1; vedi blocco Ambiente\)/);
   assert.doesNotMatch(out, /Read x1/); // the Read miss left Q5's error list
+});
+
+test('ambiente/navigation: a content-mode Grep with lines is not empty; literal no-match text is (#103)', () => {
+  const env = makeEnv();
+  const grep = (n, text, tr) => [
+    use(env, 'n1', ago(T0 - n * 1000), `n${n}`, 'Grep', { pattern: `p${n}`, output_mode: 'content' }),
+    result(env, 'n1', ago(T0 - n * 1000), `n${n}`, text, false, tr ? { toolUseResult: tr } : undefined),
+  ];
+  const three = (make) => [1, 2, 3].flatMap((n) => make(n));
+  const hits = { mode: 'content', numFiles: 0, filenames: [], numLines: 4, content: 'a.dart:1:x' };
+  const none = { mode: 'content', numFiles: 0, filenames: [], numLines: 0, content: '' };
+
+  // content mode reports numFiles 0 even when it found lines
+  write(env, 'n1', three((n) => grep(n, 'a.dart:1:x', hits)));
+  assert.match(run(env, ['--session', 'n1']), /^ambiente: nessun segnale$/m);
+
+  // count mode with matches
+  write(env, 'n1', three((n) => grep(n, 'a.dart:5', { mode: 'count', numFiles: 1, filenames: [], numMatches: 5, content: 'a.dart:5' })));
+  assert.match(run(env, ['--session', 'n1']), /^ambiente: nessun segnale$/m);
+
+  // truly empty results fire
+  write(env, 'n1', three((n) => grep(n, 'No matches found', none)));
+  assert.match(run(env, ['--session', 'n1']), /navigation \[attrito\]: 3 ricerche a vuoto/);
+
+  // a record without a structured toolUseResult: the literal text is enough
+  write(env, 'n1', three((n) => grep(n, 'No matches found')));
+  assert.match(run(env, ['--session', 'n1']), /navigation \[attrito\]: 3 ricerche a vuoto/);
 });
 
 test('ambiente/automated checks: sources edited with no check, or after the last check, or 2 failed checks', () => {
@@ -379,7 +446,7 @@ test('ambiente/automated checks: sources edited with no check, or after the last
   ]);
   const out = run(env, ['--session', 'a5']);
   assert.match(out, /2 check \(2 falliti\)/);
-  assert.match(out, /attribuiti ad ambiente: 2/);
+  assert.match(out, /attribuiti ad ambiente: 2 \(automated checks 2; vedi blocco Ambiente\)/);
   assert.match(out, /tool errors: 0/);
   assert.match(out, /stack: flutter/);
 });
@@ -399,6 +466,72 @@ test('ambiente false positives: check words inside a --body or heredoc, and edit
   assert.match(run(env, ['--session', 'a6']), /^ambiente: nessun segnale$/m);
   write(env, 'a6', [...edit(env, 'a6', 1, src(env)), ...shell(env, 'a6', 2, 'gh issue create --body "run flutter test"', 'ok', false)]);
   assert.match(run(env, ['--session', 'a6']), /nessun check eseguito/);
+});
+
+test('ambiente/automated checks: project wrapper scripts count as checks by file name (#107)', () => {
+  const env = makeEnv();
+  const silent = /^ambiente: nessun segnale$/m;
+  const ps = (id, n, command) => [
+    use(env, id, ago(T0 - n * 1000), `ps${n}`, 'PowerShell', { command }),
+    result(env, id, ago(T0 - n * 1000), `ps${n}`, 'ok', false),
+  ];
+  for (const command of [
+    'pwsh -NoProfile -File scripts/run-tests.ps1',
+    'node scripts/changelog-lint.js',
+    'bash ./tool/runTests.sh',
+    'powershell -Command "& ./tool/flutter_analyze.ps1"',
+  ]) {
+    write(env, 'w1', [...edit(env, 'w1', 1, src(env)), ...shell(env, 'w1', 2, command, 'ok', false)]);
+    assert.match(run(env, ['--session', 'w1']), silent, command);
+  }
+  write(env, 'w1', [...edit(env, 'w1', 1, src(env)), ...ps('w1', 2, '& .\\tool\\analyze.ps1')]);
+  assert.match(run(env, ['--session', 'w1']), silent);
+
+  // a wrapper run before the last edit is a check like any other
+  write(env, 'w1', [...shell(env, 'w1', 1, 'pwsh -File scripts/run-tests.ps1', 'ok', false), ...edit(env, 'w1', 2, src(env))]);
+  assert.match(run(env, ['--session', 'w1']), /1 check \(0 falliti\); 1 edit di sorgenti dopo l'ultimo check/);
+
+  // names without a check word, and the same words in arguments or non-script commands, do not count
+  for (const command of ['./scripts/latest.ps1', 'cat scripts/test.ps1', 'git add scripts/test.sh', 'pwsh scripts/deploy.ps1']) {
+    write(env, 'w1', [...edit(env, 'w1', 1, src(env)), ...shell(env, 'w1', 2, command, 'ok', false)]);
+    assert.match(run(env, ['--session', 'w1']), /nessun check eseguito/, command);
+  }
+});
+
+test('ambiente/automated checks: #102 wrapper shapes on the PowerShell tool', () => {
+  const env = makeEnv();
+  const ps = (n, command, out, isError) => [
+    use(env, 'w2', ago(T0 - n * 1000), `p${n}`, 'PowerShell', { command }),
+    result(env, 'w2', ago(T0 - n * 1000), `p${n}`, out, isError),
+  ];
+  const root = env.cwd;
+  const quoted = "& 'C:\\Users\\x y\\repo\\tools\\test.ps1' -Path 'app' test/a_test.dart";
+
+  // four failing runs and one passing run of a quoted-path wrapper: checks ran, none "missing"
+  write(env, 'w2', [
+    ...edit(env, 'w2', 1, src(env)),
+    ...[2, 3, 4, 5].flatMap((n) => ps(n, quoted, 'FAILED test/a_test.dart', true)),
+    ...ps(6, quoted, 'All tests passed!', false),
+  ]);
+  const out = run(env, ['--session', 'w2']);
+  assert.match(out, /5 check \(4 falliti\)/);
+  assert.doesNotMatch(out, /nessun check eseguito/);
+
+  // `Set-Location <root>; tools/x.ps1` puts the wrapper at command position of the second segment
+  write(env, 'w2', [
+    ...edit(env, 'w2', 1, src(env)),
+    ...ps(2, `Set-Location ${root}; tools/analyze-changed.ps1`, 'No issues found!', false),
+  ]);
+  assert.match(run(env, ['--session', 'w2']), /^ambiente: nessun segnale$/m);
+
+  // "no check recognised" and "edit after the last check" are two facts: a later edit says the second
+  write(env, 'w2', [
+    ...ps(1, `Set-Location ${root}; tools/test.ps1 -Path app`, 'All tests passed!', false),
+    ...edit(env, 'w2', 2, src(env)),
+  ]);
+  const late = run(env, ['--session', 'w2']);
+  assert.match(late, /1 check \(0 falliti\); 1 edit di sorgenti dopo l'ultimo check/);
+  assert.doesNotMatch(late, /nessun check eseguito/);
 });
 
 test('ambiente/information access: authenticate, command not found and env denials fire; user-rejected does not', () => {
@@ -434,11 +567,26 @@ test('ambiente/information access takes precedence: a missing flutter binary is 
   ]);
   const out = run(env, ['--session', 'a8']);
   assert.match(out, /comando non trovato: flutter/);
-  assert.match(out, /attribuiti ad ambiente: 2/);
+  assert.match(out, /attribuiti ad ambiente: 2 \(information access 2; vedi blocco Ambiente\)/);
   assert.match(out, /tool errors: 0/);
   assert.match(out, /automated checks \[attrito\]: nessun check eseguito; 1 edit di sorgenti/); // no check actually ran
   assert.doesNotMatch(out, /falliti/);
   assert.match(out, /repeated shell commands: 0/); // the claimed calls left ripetizioni too
+});
+
+test('ambiente: attribuiti names the sections; a lit signal with no failed call is not in N (#100)', () => {
+  const env = makeEnv();
+  write(env, 'b1', [
+    use(env, 'b1', ago(T0), 'd1', 'Bash', { command: 'cat secrets.env' }),
+    result(env, 'b1', ago(T0), 'd1', 'denied by rule', true, { toolDenialKind: 'permission-rule' }),
+    use(env, 'b1', ago(T0 - 1000), 'rm', 'Read', { file_path: src(env, 'ghost.dart') }),
+    result(env, 'b1', ago(T0 - 1000), 'rm', 'File does not exist.', true),
+    use(env, 'b1', ago(T0 - 2000), 'big', 'Read', { file_path: src(env, 'huge.txt') }),
+    result(env, 'b1', ago(T0 - 2000), 'big', 'x'.repeat(20001), false),
+  ]);
+  const out = run(env, ['--session', 'b1']);
+  assert.match(out, /ambiente: 3 segnali/); // information access, navigation, tool economy
+  assert.match(out, /attribuiti ad ambiente: 2 \(information access 1, navigation 1; vedi blocco Ambiente\)/);
 });
 
 test('ambiente dedup: repeated checks leave "repeated shell commands" when the block is lit, stay when it is not', () => {
@@ -463,7 +611,35 @@ test('ambiente/global agents.md: total at 24999 chars is silent, 25000 fires and
   write(env, 'a10', [att(10000, 14999)]);
   assert.match(run(env, ['--session', 'a10']), /^ambiente: nessun segnale$/m);
   write(env, 'a10', [att(10000, 15000)]);
-  assert.match(run(env, ['--session', 'a10']), /global agents\.md \[strutturale\]: 2 file, 25000 car\..*AutoMem MEMORY\.md 15000/);
+  const fired = run(env, ['--session', 'a10']);
+  assert.match(fired, /global agents\.md \[strutturale\]: 2 file, 25000 car\..*handoff: tune-setup --surface memory-index/);
+  // listed by size, largest first
+  assert.match(fired, /AutoMem MEMORY\.md 15000 car\.\n\s+Project CLAUDE\.md 10000 car\./);
+});
+
+test('ambiente/global agents.md: handoff surface follows the largest file and the list is capped', () => {
+  const env = makeEnv();
+  const file = (name, type, len) => ({ path: `/u/${name}`, type, content: 'x'.repeat(len) });
+  write(env, 'a12', [
+    attachment(env, 'a12', ago(T0), {
+      type: 'instructions',
+      files: [file('CLAUDE.md', 'Project', 20000), file('MEMORY.md', 'AutoMem', 6000)],
+    }),
+  ]);
+  assert.match(run(env, ['--session', 'a12']), /handoff: tune-setup --surface istruzioni/);
+
+  write(env, 'a13', [
+    attachment(env, 'a13', ago(T0), {
+      type: 'instructions',
+      files: [
+        file('a.md', 'Project', 9000), file('b.md', 'Project', 8000), file('c.md', 'Project', 7000),
+        file('d.md', 'User', 2000), file('e.md', 'User', 1000),
+      ],
+    }),
+  ]);
+  const out = run(env, ['--session', 'a13']);
+  assert.match(out, /Project a\.md 9000 car\.\n\s+Project b\.md 8000 car\.\n\s+Project c\.md 7000 car\.\n\s+\.\.\. \+2 file/);
+  assert.doesNotMatch(out, /d\.md 2000/);
 });
 
 test('ambiente block has its own cap and reports omitted lines', () => {
@@ -517,7 +693,7 @@ test('Codex: diff is anchored on session_meta.git.commit_hash; ambiente is decla
 test('Codex: a cli_version outside the observed range carries a WARNING', () => {
   const env = makeEnv();
   const file = codexRollout(env, 'cx2', { cli_version: '0.200.0' });
-  assert.match(run(env, ['--agent', 'codex', '--transcript', file]), /WARNING: Codex cli_version 0\.200\.0 outside the observed range 0\.153\.4 - 0\.165\.0/);
+  assert.match(run(env, ['--agent', 'codex', '--transcript', file]), /WARNING: Codex cli_version 0\.200\.0 outside the observed range 0\.153\.4 - 0\.167\.0/);
 });
 
 // ====================================================== real-shape canary ====
@@ -533,7 +709,7 @@ test('real-shape canary: the sanitized Claude fixture is read in full, replayed 
   assert.doesNotMatch(out, /WARNING/);
   assert.match(out, /session: canary-session {2}events: 11 /);
   assert.match(out, /tool errors: 1\n/);
-  assert.match(out, /attribuiti ad ambiente: 1/); // the denied call belongs to the ambiente block
+  assert.match(out, /attribuiti ad ambiente: 1 \(information access 1; vedi blocco Ambiente\)/); // the denied call belongs to the ambiente block
   assert.match(out, /rifiuti: .*automode-blocked=1/);
   assert.match(out, /information access \[bloccante\]: rifiuti automode-blocked x1/);
   assert.match(out, / x3 echo placeholder/); // 3 distinct tool_use ids; the 2 blob replays add nothing

@@ -9,10 +9,10 @@ Le soglie sono costanti in `scripts/retro-lens.js`; qui compaiono per nome, mai 
 | Segnale | Si accende quando | Livello | Proposta tipica |
 |---|---|---|---|
 | information access | `__authenticate`, comando non trovato, o un rifiuto `permission-rule` / `automode-blocked` (subagent inclusi) | bloccante | configurare l'accesso, il PATH o il permesso che ha fermato l'agente |
-| tool economy | un `tool_result` sopra `TOOL_RESULT_CHARS`, una troncatura del runtime, o una rilettura senza Edit riuscito in mezzo | costoso | ridurre ciò che entra nel contesto: lettura con `offset`/`limit`, comando con output ristretto |
+| tool economy | un `tool_result` sopra `TOOL_RESULT_CHARS`, una troncatura del runtime, una rilettura senza Edit riuscito in mezzo, o un comando shell in foreground andato in timeout (frase dell'harness, oppure `TaskStop` sul task in cui è stato spostato; un `run_in_background` deliberato non conta) | costoso | ridurre ciò che entra nel contesto: lettura con `offset`/`limit`, comando con output ristretto |
 | automated checks | sorgenti modificati e (nessun check, o file toccati dopo l'ultimo check, o almeno `CHECK_FAILED_MIN` check falliti) | attrito | far girare il check dopo l'edit, non a fine sessione |
 | navigation | almeno `NAV_EMPTY_SEARCHES` ricerche a vuoto, oppure almeno `NAV_READ_MISSES` Read su path inesistente | attrito | un puntatore di contesto che dica dove vive ciò che l'agente ha cercato a vuoto |
-| global agents.md | totale delle istruzioni caricate ≥ `AGENTS_MD_TOTAL_CHARS` | strutturale | segnalare la dimensione e rinviare a `tune-setup` per il giudizio sul contenuto |
+| global agents.md | totale delle istruzioni caricate ≥ `AGENTS_MD_TOTAL_CHARS` | strutturale | handoff a `tune-setup` con il comando stampato nella riga (`--surface memory-index` se il file più grande è la memoria nativa, altrimenti `--surface istruzioni`) e l'elenco file/dimensioni (`AGENTS_MD_LIST_MAX` file al massimo); `retro` non legge i file e non giudica il contenuto |
 
 Il tetto di righe del blocco (evidenze, non proposte) è `AMBIENTE_LINE_CAP`: se il blocco è troncato, le righe omesse non sono «nessun segnale». La sottocategoria del tag `environment` è il nome del segnale con i trattini (`information-access`, `global-agents-md`).
 
@@ -20,9 +20,18 @@ Il tetto di righe del blocco (evidenze, non proposte) è `AMBIENTE_LINE_CAP`: se
 
 `automode-unavailable` e ogni `toolDenialKind` non noto sono guasti transitori lato server: nessuna modifica all'ambiente li evita, quindi non accendono information access e non generano proposte. `user-rejected` è già attrito (ADR 0008), non un segnale ambiente.
 
+## Forma della proposta ambiente
+
+Applica la regola 1 di «Forma della proposta» (`SKILL.md`) alla prova della riga:
+
+- **Forma di comando → `guard`.** La prova è un comando fallito o andato in timeout per la sua forma (es. `grep -r` su una cartella di build): la proposta è un hook `PreToolUse` che rifiuta quella forma e nomina l'alternativa, con i casi bloccati e consentiti da provare.
+- **Fatto mancante → `pointer`.** La prova è una ricerca a vuoto o una Read su path inesistente: la proposta è il puntatore di contesto della riga navigation.
+
+Il tipo va nel tag: `[environment: <segnale> · guard]` o `· pointer`. Un guard già presente per quella forma lo trova `tune-setup`. Il principio «build the check over writing the rule» viene dalla skill `retro` di `mattpocock/skills` (MIT, licenza in `references/writing-for-agents.md`).
+
 ## Falsi positivi già filtrati dallo script
 
-Non riaprirli a mano: un comando conta come check solo in posizione di comando (mai dentro un `--body` o un argomento), un edit è «di sorgente» solo sotto il cwd della sessione, una rilettura dopo un Edit riuscito non conta. Se una riga ti sembra comunque sbagliata, citala come dubbia invece di proporre.
+Non riaprirli a mano: un comando conta come check solo in posizione di comando (mai dentro un `--body` o un argomento), un edit è «di sorgente» solo sotto il cwd della sessione, una rilettura dopo un Edit riuscito non conta. Uno script del progetto (lanciato direttamente o via `pwsh`/`bash`/`node`/…) conta come check se il nome del file contiene la parola intera `test`, `analyze`, `format`, `lint` o `check`: «nessun check eseguito» non vale per i wrapper. Se una riga ti sembra comunque sbagliata, citala come dubbia invece di proporre.
 
 ## Flutter-aware, con fallback generico
 

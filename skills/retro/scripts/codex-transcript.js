@@ -122,12 +122,53 @@ function select(args) {
     stale: fresh.length ? null : { ageMs: Date.now() - chosen.lastMs }, notes: [] };
 }
 
+const EXEC_RE = /^(?:functions\.)?exec$/;
+const SHELL_EXE_RE = /^(?:pwsh|powershell|bash|sh|zsh|cmd)(?:\.exe)?$/i;
+const SHELL_FLAG_RE = /^(?:-c|-lc|-command|\/c)$/i;
+const OUTPUT_CAP = 4000;
+
+// A CommandExecution item carries argv: `[pwsh.exe, -Command, "<script>"]`. The script is what
+// the agent ran, so that is the command; any other argv is joined.
+function commandText(argv) {
+  if (typeof argv === 'string') return argv;
+  if (!Array.isArray(argv)) return '';
+  const parts = argv.map(String);
+  const exe = (parts[0] || '').split(/[\\/]/).pop();
+  if (SHELL_EXE_RE.test(exe) && parts.length >= 3 && parts.slice(1, -1).some((p) => SHELL_FLAG_RE.test(p))) {
+    return parts[parts.length - 1];
+  }
+  return parts.join(' ');
+}
+
+// Paths named by an apply_patch body. The body is also seen as a JS string literal inside an
+// `exec` call, where the newlines are the two characters `\n`, so a path ends at a backslash,
+// a real newline or a closing quote.
+function patchPaths(text) {
+  const paths = [];
+  for (const m of String(text || '').matchAll(/\*\*\* (?:Update File|Add File|Delete File|Move to): ([^\\\r\n"'`]+)/g)) {
+    paths.push(m[1].trim());
+  }
+  return paths;
+}
+
+function outputText(output) {
+  if (typeof output === 'string') return output;
+  if (Array.isArray(output)) return output.map((o) => (o && typeof o.text === 'string' ? o.text : '')).join('\n');
+  return JSON.stringify(output) || '';
+}
+
 function normalize(raw) {
   const events = [];
   let malformed = 0;
   let unsupported = 0;
   let sessionId;
   const pending = new Map();
+  // Real rollouts (CLI 0.155 - 0.167) log every shell run twice: an `exec` custom tool call (a JS
+  // body that may run several commands) and one CommandExecution event per command actually run.
+  // The events are authoritative, so the `exec` call is not counted again when they exist. Patches
+  // are logged as FileChange events and also inside the `exec` body; the body is the fallback.
+  const hasCommandExecution = raw.includes('"type":"CommandExecution"');
+  const hasFileChange = raw.includes('"type":"FileChange"');
   for (const line of raw.split('\n')) {
     if (!line.trim()) continue;
     let event;
@@ -136,14 +177,38 @@ function normalize(raw) {
     if (event.type === 'session_meta') sessionId = event.payload?.id;
     const payload = event.payload || {};
     const content = [];
+    if (event.type === 'event_msg' && payload.type === 'item_completed' && payload.item && typeof payload.item === 'object') {
+      const item = payload.item;
+      if (item.type === 'CommandExecution') {
+        const failed = item.status === 'failed' || (typeof item.exit_code === 'number' && item.exit_code !== 0);
+        const text = String(item.aggregated_output ?? item.stdout ?? '') || (failed ? `exit code ${item.exit_code}` : '');
+        content.push({ type: 'tool_use', id: item.id, name: 'exec_command', input: { command: commandText(item.command) } },
+          { type: 'tool_result', tool_use_id: item.id, is_error: failed, content: text.slice(0, OUTPUT_CAP) });
+      } else if (item.type === 'FileChange' && item.status === 'completed' && item.changes && typeof item.changes === 'object') {
+        for (const [file, change] of Object.entries(item.changes)) {
+          content.push({ type: 'tool_use', name: 'Edit', input: { file_path: file } });
+          if (change && typeof change.move_path === 'string' && change.move_path) {
+            content.push({ type: 'tool_use', name: 'Edit', input: { file_path: change.move_path } });
+          }
+        }
+      }
+    }
     if (event.type === 'response_item') {
-      if (payload.type === 'function_call' || payload.type === 'custom_tool_call') {
+      if (payload.type === 'custom_tool_call' && EXEC_RE.test(payload.name) && hasCommandExecution) {
+        // Covered by CommandExecution events: no tool_use, no result. Keep the body for the patch fallback.
+        if (payload.call_id) pending.set(payload.call_id, { name: payload.name, input: {}, covered: true, body: payload.input });
+      } else if (payload.type === 'custom_tool_call_output' && pending.get(payload.call_id)?.covered) {
+        const call = pending.get(payload.call_id);
+        if (!hasFileChange && !/^Script failed/.test(outputText(payload.output))) {
+          for (const file of patchPaths(call.body)) content.push({ type: 'tool_use', name: 'Edit', input: { file_path: file } });
+        }
+      } else if (payload.type === 'function_call' || payload.type === 'custom_tool_call') {
         let input = {};
         if (payload.type === 'function_call') {
           try { input = JSON.parse(payload.arguments || '{}'); } catch { malformed++; }
         } else input = { patch: payload.input || '' };
         if (typeof input.cmd === 'string') input.command = input.cmd;
-        if (/^(?:functions\.)?exec$/.test(payload.name)) unsupported++;
+        if (EXEC_RE.test(payload.name)) unsupported++;
         if (payload.call_id) pending.set(payload.call_id, { name: payload.name, input });
         content.push({ type: 'tool_use', id: payload.call_id, name: payload.name, input });
       } else if (payload.type === 'function_call_output' || payload.type === 'custom_tool_call_output') {
@@ -159,8 +224,8 @@ function normalize(raw) {
         const call = pending.get(payload.call_id);
         if (!call) unsupported++;
         if (call && !failed && /(?:^|__)apply_patch$/.test(call.name)) {
-          for (const match of (call.input.patch || call.input.input || '').matchAll(/^\*\*\* (?:Update|Add|Delete) File: (.+)$/gm)) {
-            content.push({ type: 'tool_use', name: 'Edit', input: { file_path: match[1].trim() } });
+          for (const file of patchPaths(call.input.patch || call.input.input)) {
+            content.push({ type: 'tool_use', name: 'Edit', input: { file_path: file } });
           }
         }
       } else if (payload.type === 'local_shell_call' || /tool|function_call/.test(payload.type || '')) {

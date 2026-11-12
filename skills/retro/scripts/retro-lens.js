@@ -15,9 +15,13 @@ const NAV_EMPTY_SEARCHES = 3; // Grep/Glob with zero results (main thread)
 const NAV_READ_MISSES = 1; // Read of a path that does not exist
 const CHECK_FAILED_MIN = 2; // failed check commands that fire Automated checks
 const AGENTS_MD_TOTAL_CHARS = 25000; // total loaded steering text (absolute, not relative)
+const AGENTS_MD_LIST_MAX = 3; // files listed under the global agents.md line (handoff to tune-setup)
 const AMBIENTE_LINE_CAP = 10; // own cap for the lit block; the "no signal" line is outside it
 const DENIAL_KINDS = ['user-rejected', 'permission-rule', 'automode-blocked'];
 const ENV_DENIALS = new Set(['permission-rule', 'automode-blocked']);
+// Sections that can claim a failed call, in precedence order (#100): the breakdown of
+// `attribuiti ad ambiente` prints them in this order.
+const CLAIM_SECTIONS = ['information access', 'automated checks', 'navigation'];
 
 const SHELL_TOOLS = new Set(['Bash', 'PowerShell', 'exec_command', 'functions.exec_command']);
 const SOURCE_EXT = new Set([
@@ -35,6 +39,15 @@ const CHECK_RES = [
   /^go\s+(?:test|vet)\b/,
   /^node\s+--test\b/,
 ];
+// Project wrapper scripts (#107): a script run at command position counts as a check when its
+// file name has one of these words. Whole words only, so `latest.ps1` does not match `test`.
+const SCRIPT_RUNNERS = new Set(['pwsh', 'powershell', 'bash', 'sh', 'zsh', 'node', 'python', 'python3', 'py', 'cmd']);
+const SCRIPT_EXT = new Set(['.ps1', '.sh', '.bash', '.bat', '.cmd', '.js', '.mjs', '.cjs', '.ts', '.py', '.dart']);
+const WRAPPER_WORD_RE = /^(?:tests?|analy[sz]e|format|lint|check)$/;
+// Harness phrase for a foreground command that outlived its timeout (#104). It belongs to the
+// harness and may change, so a TaskStop on the moved task is an independent trigger.
+const BG_TIMEOUT_RE = /did not complete within its \d+\s*s timeout|moved to the background/i;
+const TASK_STOP_TOOLS = new Set(['TaskStop', 'KillShell']);
 const FLUTTER_CMD_RE = /^(?:dart|flutter|melos)\b/;
 const NOT_FOUND_RE =
   /command not found|is not recognized as|term '[^']+' is not recognized|exit code:? ?127\b/i;
@@ -71,10 +84,31 @@ function textOf(content) {
   return '';
 }
 
-function emptySearch(tr) {
+// A Grep/Glob that found nothing. Grep in output_mode "content" reports numFiles 0 even with
+// hits (it counts lines), so a zero file count alone is not "empty" (#103). The literal result
+// text is the fallback for a record that carries no structured toolUseResult.
+const EMPTY_SEARCH_TEXT_RE = /^\s*No (?:matches|files) found\b/i;
+function emptySearch(tr, text) {
+  if (EMPTY_SEARCH_TEXT_RE.test(text || '')) return true;
   if (!tr || typeof tr !== 'object') return false;
-  if (tr.numFiles === 0) return true;
-  return Array.isArray(tr.filenames) && tr.filenames.length === 0 && (tr.numLines === 0 || !tr.content);
+  const noFiles = tr.numFiles === 0 || (Array.isArray(tr.filenames) && tr.filenames.length === 0);
+  const noHits = !(tr.numLines > 0) && !(tr.numMatches > 0) && !tr.content;
+  return noFiles && noHits;
+}
+
+// A shell call the harness moved to the background (#104): the id of that task and, when the
+// harness reports it, the timeout that triggered the move. A deliberate run_in_background has
+// an id and no timeout.
+function backgroundInfo(tr, text) {
+  const out = {};
+  const obj = tr && typeof tr === 'object' ? tr : {};
+  if (typeof obj.backgroundTaskId === 'string' && obj.backgroundTaskId) out.bgTaskId = obj.backgroundTaskId;
+  else {
+    const m = /\(ID: ([A-Za-z0-9_-]+)\)/.exec(text);
+    if (m) out.bgTaskId = m[1];
+  }
+  if (typeof obj.timedOutAfterMs === 'number' && obj.timedOutAfterMs > 0) out.timedOutMs = obj.timedOutAfterMs;
+  return out;
 }
 
 // Fold one transcript event into `st`. Idempotent per tool_use id / tool_result id.
@@ -116,7 +150,8 @@ function collect(st, evt, sidechain) {
         text: text.length > 2000 ? text.slice(0, 2000) : text,
         truncated: /truncated output \(original token count/i.test(text),
         ts: evt.timestamp || null,
-        emptySearch: emptySearch(evt.toolUseResult),
+        emptySearch: emptySearch(evt.toolUseResult, text),
+        ...backgroundInfo(evt.toolUseResult, text),
       });
     }
   }
@@ -193,8 +228,41 @@ function normSegment(seg) {
     .replace(/^(?:npx|pnpx|bunx|time|sudo)\s+/, '');
 }
 
+const baseName = (t) => t.replace(/\\/g, '/').split('/').pop();
+const scriptExt = (t) => path.extname(baseName(t)).toLowerCase();
+
+// True when the segment invokes a project script (directly or through a runner such as
+// `pwsh -File`) whose file name carries a check word: run-tests.ps1, changelog-lint.js, runTests.sh.
+function isWrapperCheck(seg) {
+  const tokens = (seg.match(/"[^"]*"|'[^']*'|\S+/g) || []).map((t) => t.replace(/^["']|["']$/g, ''));
+  if (!tokens.length) return false;
+  const head = baseName(tokens[0]).toLowerCase().replace(/\.exe$/, '');
+  let script = null;
+  if (SCRIPT_RUNNERS.has(head)) {
+    // `-Command "& ./x.ps1"` arrives as one token: look at its words too.
+    for (const t of tokens.slice(1)) {
+      const hit = t.split(/\s+/).map((w) => w.replace(/^&/, '')).find((w) => w && SCRIPT_EXT.has(scriptExt(w)));
+      if (hit) {
+        script = hit;
+        break;
+      }
+    }
+  } else if (SCRIPT_EXT.has(scriptExt(tokens[0])) || /[\\/]/.test(tokens[0])) {
+    script = tokens[0];
+  }
+  if (!script) return false;
+  const stem = baseName(script).replace(/\.[^.]+$/, '');
+  return stem
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .split(/[^A-Za-z0-9]+/)
+    .some((w) => WRAPPER_WORD_RE.test(w.toLowerCase()));
+}
+
 function isCheckCommand(cmd) {
-  return commandSegments(cmd).some((s) => CHECK_RES.some((re) => re.test(normSegment(s))));
+  return commandSegments(cmd).some((s) => {
+    const n = normSegment(s);
+    return CHECK_RES.some((re) => re.test(n)) || isWrapperCheck(n);
+  });
 }
 
 function hasFlutterCommand(cmd) {
@@ -255,6 +323,11 @@ function evaluate(st, ctx, extraDenials) {
   const { excerpt, roots } = ctx;
   const denials = st.denials.concat(extraDenials || []);
   const claimedFailed = new Set();
+  const claimedBy = new Map(); // tool_use id -> section that claimed it (#100)
+  const claim = (id, section) => {
+    claimedFailed.add(id);
+    if (!claimedBy.has(id)) claimedBy.set(id, section);
+  };
   const claimedChecks = new Set();
   const main = [...st.uses.values()].filter((u) => !u.sidechain);
 
@@ -265,12 +338,12 @@ function evaluate(st, ctx, extraDenials) {
   for (const u of main) {
     const r = st.results.get(u.id);
     if (!r || !r.isError || !shellCommand(u) || !NOT_FOUND_RE.test(r.text)) continue;
-    claimedFailed.add(u.id);
+    claim(u.id, CLAIM_SECTIONS[0]);
     const n = notFoundName(u, r.text);
     notFound.set(n, (notFound.get(n) || 0) + 1);
   }
   const envDenials = denials.filter((d) => ENV_DENIALS.has(d.kind));
-  for (const d of envDenials) if (d.id && st.uses.has(d.id) && !st.uses.get(d.id).sidechain) claimedFailed.add(d.id);
+  for (const d of envDenials) if (d.id && st.uses.has(d.id) && !st.uses.get(d.id).sidechain) claim(d.id, CLAIM_SECTIONS[0]);
   const infoLit = auth.size > 0 || notFound.size > 0 || envDenials.length > 0;
 
   // --- Automated checks
@@ -292,7 +365,7 @@ function evaluate(st, ctx, extraDenials) {
     srcEdits.length > 0 &&
     (checkUses.length === 0 || editsAfter.length > 0 || failedChecks.length >= CHECK_FAILED_MIN);
   if (checksLit) {
-    failedChecks.forEach((u) => claimedFailed.add(u.id));
+    failedChecks.forEach((u) => claim(u.id, CLAIM_SECTIONS[1]));
     checkUses.forEach((u) => claimedChecks.add(u.id));
   }
 
@@ -316,7 +389,7 @@ function evaluate(st, ctx, extraDenials) {
     for (const u of main) {
       const r = st.results.get(u.id);
       if (u.name === 'Read' && r && r.isError && !claimedFailed.has(u.id) && /does not exist|no such file|not found|ENOENT/i.test(r.text)) {
-        claimedFailed.add(u.id);
+        claim(u.id, CLAIM_SECTIONS[2]);
       }
     }
   }
@@ -342,7 +415,26 @@ function evaluate(st, ctx, extraDenials) {
     if (prev !== undefined && !(lastEdit.has(norm(u.input.file_path)) && lastEdit.get(norm(u.input.file_path)) > prev)) rereads++;
     lastRead.set(key, u.seq);
   }
-  const econLit = big.length > 0 || truncs > 0 || rereads > 0;
+  // Foreground shell calls that timed out into the background. A deliberate
+  // run_in_background never counts, even when it is stopped later.
+  const stopped = new Set();
+  for (const u of main) {
+    if (!TASK_STOP_TOOLS.has(u.name) || !u.input) continue;
+    const id = u.input.task_id || u.input.shell_id;
+    if (typeof id === 'string' && id) stopped.add(id);
+  }
+  const timeouts = [];
+  for (const u of main) {
+    if (!shellCommand(u) || u.input.run_in_background) continue;
+    const r = st.results.get(u.id);
+    if (!r) continue;
+    if (r.timedOutMs || BG_TIMEOUT_RE.test(r.text) || (r.bgTaskId && stopped.has(r.bgTaskId))) {
+      const m = /(\d+)\s*s timeout/i.exec(r.text);
+      const secs = r.timedOutMs ? Math.round(r.timedOutMs / 1000) : m ? Number(m[1]) : null;
+      timeouts.push({ u, secs });
+    }
+  }
+  const econLit = big.length > 0 || truncs > 0 || rereads > 0 || timeouts.length > 0;
 
   // --- Global AGENTS.md (a constant property of the project, severity "strutturale")
   let total = 0;
@@ -394,17 +486,27 @@ function evaluate(st, ctx, extraDenials) {
   }
   if (econLit) {
     lines.push(
-      `  tool economy [costoso]: ${big.length} risultati >${TOOL_RESULT_CHARS} car., ${truncs} troncature, ${rereads} riletture`
+      `  tool economy [costoso]: ${big.length} risultati >${TOOL_RESULT_CHARS} car., ${truncs} troncature, ${rereads} riletture` +
+        (timeouts.length ? `, ${timeouts.length} timeout` : '')
     );
     for (const x of big.slice(0, 2)) {
       lines.push(`    ${x.u.name} ${excerpt(x.u.input)} → ${x.r.len} car.`);
     }
+    for (const t of timeouts.slice(0, 2)) {
+      lines.push(`    timeout: ${t.u.name} ${excerpt(t.u.input)}${t.secs ? ` → ${t.secs} s` : ''}`);
+    }
   }
   if (agentsLit) {
+    const surface = largest.type === 'AutoMem' ? 'memory-index' : 'istruzioni';
     lines.push(
       `  global agents.md [strutturale]: ${st.instr.size} file, ${total} car. (soglia ${AGENTS_MD_TOTAL_CHARS}); ` +
-        `il più grande: ${largest.type} ${path.basename(largest.p)} ${largest.len} car.`
+        `handoff: tune-setup --surface ${surface}`
     );
+    const bySize = [...st.instr].sort((a, b) => b[1].len - a[1].len);
+    for (const [p, f] of bySize.slice(0, AGENTS_MD_LIST_MAX)) {
+      lines.push(`    ${f.type} ${path.basename(p)} ${f.len} car.`);
+    }
+    if (bySize.length > AGENTS_MD_LIST_MAX) lines.push(`    ... +${bySize.length - AGENTS_MD_LIST_MAX} file`);
   }
   const litCount = [infoLit, checksLit, navLit, econLit, agentsLit].filter(Boolean).length;
 
@@ -417,7 +519,7 @@ function evaluate(st, ctx, extraDenials) {
       block = block.slice(0, AMBIENTE_LINE_CAP - 1).concat(`  ... ${omitted} righe omesse (tetto ${AMBIENTE_LINE_CAP})`);
     }
   }
-  return { block, claimedFailed, claimedChecks, srcEdits };
+  return { block, claimedFailed, claimedBy, claimedChecks, srcEdits };
 }
 
 module.exports = {
@@ -438,4 +540,5 @@ module.exports = {
   CHECK_FAILED_MIN,
   AGENTS_MD_TOTAL_CHARS,
   AMBIENTE_LINE_CAP,
+  CLAIM_SECTIONS,
 };
