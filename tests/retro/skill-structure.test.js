@@ -165,6 +165,13 @@ test('ambiente proposal shape: guard / pointer (#105)', () => {
   assert(report.includes('`· guard` o `· pointer`') && report.includes('references/environment-lens.md'), 'categories do not point to the lens');
 });
 
+test('Q1-Q4 and Q6 are not applicable for any non-current transcript, whatever flag selects it (#99)', () => {
+  const when = skill.slice(idx(skill, '## Quando lanciarla'), idx(skill, '## Compatibilita della sessione'));
+  for (const needle of ['--transcript', '--session', 'memoria del lavoro', 'non applicabile', 'Q1', 'Q2', 'Q3', 'Q4', 'Q6', 'identità con la conversazione corrente']) {
+    assert(when.includes(needle), `"Quando lanciarla" misses: ${needle}`);
+  }
+});
+
 test('the writing reference carries attribution, a 40-60 line body and the MIT text', () => {
   const ref = read('references', 'writing-for-agents.md');
   assert(/^> Adapted from /m.test(ref.split('\n').slice(0, 4).join('\n')));
