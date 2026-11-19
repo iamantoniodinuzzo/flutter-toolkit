@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- `scaffold-feature`, `audit-domain-layer`, `audit-data-layer`, `audit-application-layer`: one set of conventions across the
+  scaffold and the audit rules. Entities have no serialization (`fromMap`/`toMap`/`toEntity()` live in `data/models`), plural
+  folders `domain/{entities,repositories,exceptions}`, `data/{models,repositories}`, `application/`,
+  `presentation/{screens,widgets}`, the repository interface is always created and its provider returns it, feature
+  exceptions are a `sealed` hierarchy under the abstract `AppException`, and a service only exists when logic spans
+  repositories. Riverpod v3 `Ref ref` everywhere, no `Either` example. (#111)
+- `scaffold-feature`, `sentry-init`, `audit-application-layer`, `unit-test`: `LoggerService` is
+  `(String message, [Object? error, StackTrace? stackTrace])`, injected through `loggerServiceProvider`. The new
+  `error-logging-contract.md` defines it once, together with `AsyncErrorLogger` and the swallow-vs-propagate rule, as a
+  byte-identical copy in each skill that needs it. APP-NOTIF-02 now reports a project-level finding when no
+  `ProviderObserver` is registered. (#111, #56)
+- `scaffold-feature`, `sentry-init`: the one build command lives in `references/codegen.md` (full build, `--build-filter` optional and
+  never with `--delete-conflicting-outputs`). (#111)
+- `unit-test`, `generate-widget-tests`, `audit-presentation-layer`, `maestro-screenshot-flow`, `asset-preload-init`,
+  `sentry-init`: no skill names a specific app; paths resolve from the target project. (#111)
+- `riverpod-reviewer`: new rule 8 (error capture: double reports, swallowed errors, unguarded observer). (#56)
+- `scripts/validate-skills.js`: fails on project-specific names, on v2 `<Name>Ref ref` parameters and when a shared copy
+  drifts from its canonical file. `skills.sh.json` lists all 22 active skills. (#111)
+
+### Removed
+
+- `GEMINI.md`, `.gemini/` and `.cursor/rules/`: leftovers of Gemini and Cursor support removed earlier. (#111)
+
+### Fixed
+
+- ADR 0001 cites the flavors boundary note at `flutter-flavors/SKILL.md:381-383`; README no longer pins `--ref v3.11.0`. (#56, #111)
+
 ## [4.2.0] - 2026-11-19
 
 ### Added

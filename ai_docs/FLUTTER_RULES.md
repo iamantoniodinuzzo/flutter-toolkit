@@ -12,17 +12,9 @@ The `riverpod-reviewer` agent enforces these — apply when editing any provider
 - Any `ref.watch(provider)` that uses only one field must use `.select()`
 - All `AsyncValue` must handle data/loading/error; avoid naked `.value!`
 
-## Codegen: `--build-filter` vs full rebuild
+## Codegen
 
-Never combine `dart run build_runner build --delete-conflicting-outputs` with `--build-filter` — the flag deletes all cached `.g.dart` project-wide before building, and only the filtered subset gets regenerated. (The flag alone, on a full unfiltered build, is fine.)
-
-Prefer `--build-filter` for targeted rebuilds: normalize the path to its **output** form first (a `.dart` file → `.g.dart`; a directory → append `**`), since `--build-filter` matches output paths, not source paths:
-
-```bash
-dart run build_runner build --build-filter="lib/src/features/foo/**"
-```
-
-**Known caveat (#41):** even without `--delete-conflicting-outputs`, `--build-filter` alone can silently delete unrelated `.g.dart` files project-wide when the cached asset graph is far out of date (e.g. after many accumulated edits), without logging it. `skills/build-filter/` (deprecated, kept on disk) still documents the full failure mode and a before/after-snapshot guard script (`scripts/guarded-build.{sh,ps1}`) that can be run standalone for that protection — read its SKILL.md for details, or budget for an occasional full `dart run build_runner build` as a safety net after a large batch of edits.
+One build command, `dart run build_runner build --delete-conflicting-outputs`, run from the package root. `--build-filter` is an optional speed-up and is never combined with `--delete-conflicting-outputs`. The full statement, including the silent-deletion caveat (#41), is `skills/scaffold-feature/references/codegen.md` (copied byte-identical into `skills/sentry-init/references/`). `skills/build-filter/` stays archived on disk.
 
 ## `dart analyze` scoping
 
@@ -49,7 +41,7 @@ On Windows, filter output by feature name (not path with `/`) because `dart anal
 
 Levels: `t()` trace · `d()` debug · `i()` info · `w()` warning · `e()` error · `f()` fatal
 
-`AsyncErrorLogger` handles errors from async providers automatically — never log errors inside async providers.
+Every method is `(String message, [Object? error, StackTrace? stackTrace])`, positional. `AsyncErrorLogger` reports errors from async providers automatically, so a `catch` that rethrows does not log; only a `catch` that swallows does. The contract (interface, observer, swallow-vs-propagate) is `skills/scaffold-feature/references/error-logging-contract.md`, copied byte-identical into the skills that use it.
 
 ## Testing conventions
 

@@ -77,6 +77,14 @@ Classify each file as `application-file`.
 
 ## Phase 3 — Scan
 
+### Observer check (once per run, before the file scan)
+
+APP-NOTIF-02 assumes errors in async providers are reported by a `ProviderObserver`. Check that the project
+has one: search the nearest ancestor `lib/` of the input path for a class that overrides `providerDidFail`
+and is registered in an `observers:` list (`ProviderScope` or `ProviderContainer`). Match by shape, not by
+name (`AsyncErrorLogger`, `AsyncErrorObserver`, ...); the definition and the detection rule are in
+`rules/patterns/error-logging-contract.md`. Record `observer: present (<file>)` or `observer: absent`.
+
 For each `application-file`:
 
 1. Read the full file contents.
@@ -92,10 +100,13 @@ Heuristic application notes:
 - **APP-NOTIF-02**: flag `try {` blocks inside a class that extends or mixes in
   `AsyncNotifier`, `Notifier`, `StreamNotifier`, `AutoDisposeAsyncNotifier`,
   `AutoDisposeNotifier`, or any class whose name ends in `Notifier`. The key signal is
-  manual `try/catch` around `await` expressions for error *reporting* — the
-  `AsyncErrorLogger` and Riverpod's single-error-channel via state assignment already
-  handle this. Do NOT flag `try/catch` that converts an infra exception to a domain
-  exception (which is data-layer work and valid if present for a specific reason).
+  manual `try/catch` around `await` expressions for error *reporting* — the registered
+  observer (`rules/patterns/error-logging-contract.md`) and Riverpod's single-error-channel via
+  state assignment already handle this. Do NOT flag `try/catch` that converts an infra exception
+  to a domain exception (which is data-layer work and valid if present for a specific reason),
+  and do NOT flag a `catch` that swallows the error and falls back (the observer never sees it,
+  so logging there is correct). When the observer check found none, still flag, and add the
+  project-level finding described in Phase 4.
 - **APP-NOTIF-01**: flag public async methods (not `build`) inside notifier classes that
   declare a return type other than `Future<void>` or `void`. Specifically flag
   `Future<T> methodName(` where `T` is not `void`. Mutation methods must surface errors
@@ -136,6 +147,16 @@ Emit the violations grouped by file:
 
 ---
 **Summary**: 4 violations across 1 file (2 errors, 2 warnings, 0 info)
+```
+
+**Project-level finding.** When APP-NOTIF-02 matched and the observer check found no observer, print this
+block before the per-file tables, once:
+
+```
+### Project-level
+| Rule ID | Severity | Message |
+|---------|----------|---------|
+| APP-NOTIF-02 | error | No ProviderObserver overrides providerDidFail: errors in async providers are reported nowhere. Add the observer from rules/patterns/error-logging-contract.md first, then remove the try/catch blocks flagged below — removing them alone would silence the errors |
 ```
 
 If no violations are found, say so explicitly:

@@ -84,7 +84,7 @@ auto-fix is safe (`autofix_safe`). Phase 3 of the skill scans using this catalog
 - **Heuristic**: find `throw Exception(`, `throw StateError(`, `throw ArgumentError(`,
   `throw FormatException(`, `throw RangeError(` in files under `domain/` or `application/`.
   Also flag `throw` followed by a string literal as the thrown expression.
-- **Fix**: define a concrete exception class extending the feature-level abstract exception
+- **Fix**: define a concrete exception class extending the feature-level sealed exception
   (which extends `AppException`). Replace the generic throw with the typed exception.
   Place the exception class in `domain/exceptions/<feature>_exceptions.dart`.
 - **autofix_safe**: false (exception class must be designed per project naming convention)
@@ -92,7 +92,7 @@ auto-fix is safe (`autofix_safe`). Phase 3 of the skill scans using this catalog
 ### DOMAIN-FAIL-02
 - **Severity**: warning
 - **Source**: `rules/patterns/sealed-exceptions.md`
-- **What**: Feature-level abstract exception base is declared `abstract class` instead of
+- **What**: Feature-level exception base is declared `abstract class` instead of
   `sealed class`. Without `sealed`, callers cannot `switch` exhaustively over the exception type,
   so adding a new concrete error state later compiles silently unhandled anywhere it isn't caught.
 - **Heuristic**: in files under `domain/`, find `abstract class <X> extends AppException` or

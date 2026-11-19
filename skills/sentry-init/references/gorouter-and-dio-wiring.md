@@ -1,7 +1,6 @@
 # GoRouter Observer and Dio Breadcrumbs
 
-> Adapted from `Engage-srl/pollicino_viewer` — `apps/tomcat_portal/ai_docs/sentry/sentry_additional_options.md`.
-> Project-specific paths replaced with generic equivalents.
+> Adapted from internal production notes.
 
 ---
 

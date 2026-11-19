@@ -115,7 +115,7 @@ and caching semantics of the application layer.
 
 ```dart
 // ❌ BAD — widget reaches two layers down
-import '../../data/repository/firestore_booking_repository.dart';
+import '../../data/repositories/firestore_booking_repository.dart';
 
 // ✅ GOOD — widget watches the application-layer provider
 import '../../application/booking_service.dart';

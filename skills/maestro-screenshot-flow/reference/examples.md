@@ -59,14 +59,14 @@ Semantics(
 ### Flow YAML
 
 ```yaml
-appId: com.engage.tomcat_portal.dev
+appId: com.example.myapp.dev
 name: "Login"
 tags:
   - auth
   - screenshots
 env:
-  USER_EMAIL: "marco@aurelio.com"
-  USER_PASSWORD: "12121212"
+  USER_EMAIL: "user@example.com"
+  USER_PASSWORD: "<password>"
 ---
 - launchApp:
     clearState: true
@@ -180,7 +180,7 @@ Semantics(
 ### Flow YAML
 
 ```yaml
-appId: com.engage.tomcat_portal.dev
+appId: com.example.myapp.dev
 name: "Register - Pilot"
 tags:
   - auth

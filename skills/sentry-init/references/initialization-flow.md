@@ -1,7 +1,6 @@
 # Sentry Initialization Flow — Approach Comparison
 
-> Adapted from `Engage-srl/pollicino_viewer` — `apps/tomcat_portal/ai_docs/sentry/sentry_initialization_flows.md`.
-> Project-specific paths and class names replaced with generic equivalents.
+> Adapted from internal production notes.
 
 ---
 

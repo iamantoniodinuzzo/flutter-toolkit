@@ -52,7 +52,7 @@ borderline case or produce a more detailed fix explanation.
 Target file = the provided `.dart` path.
 
 Classify it as one of:
-- `repository` — file name contains `repository` or lives in a `repository/` subdirectory
+- `repository` — file name contains `repository` or lives in a `repositories/` subdirectory
 - `datasource` — file name contains `datasource` or `data_source` or lives in a `datasource/` subdirectory
 - `model` — file name ends in `_model.dart` or lives in a `models/` subdirectory
 - `data-file` — any other `.dart` file under `data/`
@@ -88,7 +88,7 @@ For each file:
 Heuristic application notes:
 
 - **DATA-REPO-01**: within a class that appears to be a repository implementation (class name
-  ends in `Repository` or file is under `repository/`), look for `catch` blocks that do NOT
+  ends in `Repository` or file is under `repositories/`), look for `catch` blocks that do NOT
   contain a `throw <TypedExceptionName>` on the same or next non-blank line. Also flag `catch`
   followed immediately by `rethrow` with no conversion. Do NOT flag `catch` blocks in test files.
 - **DATA-LEAK-01**: flag return types or method signatures containing any of:
@@ -120,7 +120,7 @@ Emit the violations grouped by file:
 ```
 ## Audit Results — Data Layer
 
-### lib/.../auth/data/repository/firestore_auth_repository.dart
+### lib/.../auth/data/repositories/firestore_auth_repository.dart
 | Line | Rule ID | Severity | Message |
 |------|---------|----------|---------|
 | 45 | DATA-REPO-01 | error | catch block does not convert FirebaseException → typed domain exception |
@@ -172,7 +172,7 @@ Never edit files that were not explicitly approved by the user.
 ## Usage examples
 
 - `audit the data layer of features/auth`
-- `audit this repository: lib/src/features/auth/data/repository/firestore_auth_repository.dart`
+- `audit this repository: lib/src/features/auth/data/repositories/firestore_auth_repository.dart`
 - `find data violations in features/booking/data/`
 - `/audit-data-layer lib/src/features/auth/data/`
 - `/audit-data-layer lib/src/features/booking/`

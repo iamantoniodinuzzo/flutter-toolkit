@@ -10,17 +10,20 @@ by *type*, never by string matching.
 ## 1. Hierarchy rule
 
 ```
-AppException  (core_exceptions package)
-  └── FeatureException  (abstract, domain/)
+AppException  (abstract base, in the project's core)
+  └── FeatureException  (sealed, domain/)
         ├── FetchOrderException
         ├── SendOrderException
         └── FeatureUnauthenticatedException
 ```
 
-- **`AppException`** — base class, provides `code` + `message`.
-- **Abstract feature exception** — one per feature, in `domain/exceptions/`.
-  Lets callers catch all feature errors with a single `on FeatureException`.
+- **`AppException`** — the project's abstract base class, provides `code` + `message`.
+- **Sealed feature exception** — one per feature, in `domain/exceptions/`.
+  Lets callers catch all feature errors with a single `on FeatureException`, and
+  `switch` over the concrete exceptions exhaustively.
 - **Concrete exceptions** — one per error scenario. Immutable, `const`-constructable.
+  Declare them in the same file as the sealed class: Dart only allows a `sealed`
+  class to be extended inside its own library.
 
 ---
 
@@ -30,7 +33,7 @@ AppException  (core_exceptions package)
 |---|---|
 | Repository errors | `domain/exceptions/<feature>_exceptions.dart` |
 | Service / auth errors | same file, same hierarchy |
-| Cross-feature | `core_exceptions` package |
+| Cross-feature | the project's core exceptions folder, next to `AppException` |
 
 Never define exceptions in `data/` or `presentation/`. The domain layer owns
 the contract; data/presentation only throw what is defined there.
@@ -57,7 +60,7 @@ distinguish this from other exceptions.
 
 ```dart
 // domain/exceptions/validate_trajectory_exceptions.dart
-abstract class ValidateTrajectoryException extends AppException {
+sealed class ValidateTrajectoryException extends AppException {
   const ValidateTrajectoryException({required super.code, required super.message});
 }
 

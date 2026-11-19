@@ -14,6 +14,12 @@ When adding a new skill, update BOTH:
 
 Version bump runs **post-merge**, not in the PR. See the Version bump section below for the manual procedure.
 
+## Shared references
+
+A skill is installed on its own, so it cannot read another skill or `ai_docs/`. Text that several skills need is a **byte-identical copy** of one canonical file, and `node scripts/validate-skills.js` fails when a copy drifts. The table of canonical files and copies is the `copies` list in `scripts/validate-skills.js`. The `<!-- source: ... -->` header on a copied rule doc and line endings are not part of the compared text.
+
+To change one: edit the canonical file (under `scaffold-feature/references/`), copy it over every copy the list names, run the validator. Do not edit a copy alone. The validator also rejects project-specific names and Riverpod v2 `<Name>Ref ref` parameters in `skills/`, `agents/` and `ai_docs/`.
+
 ## Fetching upstream rule docs (flutter_ai_toolkit)
 
 To copy rule docs from `iamantoniodinuzzo/flutter_ai_toolkit` into a skill's `rules/` folder:

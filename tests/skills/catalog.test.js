@@ -34,3 +34,46 @@ test('partial catalogs identify missing shared dependencies', t => {
       /missing (?:bundled resource|required skill)/.test(error.message) && error.message.includes(dependency));
   }
 });
+
+function tempCatalog(t, label) {
+  const source = path.resolve(__dirname, '../..');
+  const tempRoot = fs.realpathSync(os.tmpdir());
+  const catalog = fs.mkdtempSync(path.join(tempRoot, `toolkit-${label}-`));
+  t.after(() => {
+    assert.equal(path.dirname(catalog), tempRoot);
+    fs.rmSync(catalog, { recursive: true, force: true });
+  });
+  for (const name of ['skills', 'agents', 'ai_docs', '.codex-plugin', '.claude-plugin', '.agents/plugins', 'package.json', 'README.md']) {
+    fs.cpSync(path.join(source, name), path.join(catalog, name), { recursive: true });
+  }
+  return catalog;
+}
+
+test('validation rejects project-specific names in skills and agents', t => {
+  const catalog = tempCatalog(t, 'banned');
+  assert.doesNotThrow(() => validate(catalog));
+  const file = path.join(catalog, 'skills/unit-test/SKILL.md');
+  fs.appendFileSync(file, '\nRead apps/pollicino_viewer/test/src/mocks.dart\n');
+  assert.throws(() => validate(catalog), /project-specific name/);
+});
+
+test('validation rejects provider-named Ref parameters but accepts WidgetRef', t => {
+  const catalog = tempCatalog(t, 'ref');
+  const file = path.join(catalog, 'agents/riverpod-reviewer.md');
+  fs.appendFileSync(file, '\nWidget build(BuildContext context, WidgetRef ref) {}\n');
+  assert.doesNotThrow(() => validate(catalog));
+  fs.appendFileSync(file, '\nUserRepository userRepository(UserRepositoryRef ref) {}\n');
+  assert.throws(() => validate(catalog), /Riverpod v2 Ref parameter/);
+});
+
+test('validation fails when a shared copy drifts from its canonical file', t => {
+  const catalog = tempCatalog(t, 'drift');
+  assert.doesNotThrow(() => validate(catalog));
+  // The source header and line endings are not drift.
+  const headered = path.join(catalog, 'skills/audit-domain-layer/rules/patterns/feature-creation.md');
+  fs.writeFileSync(headered, fs.readFileSync(headered, 'utf8').replace(/\n/g, '\r\n'));
+  assert.doesNotThrow(() => validate(catalog));
+  const copy = path.join(catalog, 'skills/sentry-init/references/codegen.md');
+  fs.appendFileSync(copy, '\nA line that only the copy has.\n');
+  assert.throws(() => validate(catalog), /shared copy drifted/);
+});

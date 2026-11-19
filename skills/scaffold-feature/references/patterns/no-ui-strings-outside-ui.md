@@ -48,13 +48,21 @@ Instead, keep the domain enum as a **stable, typed value** and create an
 **extension in the presentation layer** that translates it to a user-facing
 string (localized/hardcoded as appropriate for your feature).
 
-Example (this repo):
+Example:
 
-- Domain enums live in:
-  - `apps/tomcat_portal/lib/src/features/fleet_management/domain/aircraft.dart`
-- UI mapping extensions live in `presentation/`:
-  - `apps/tomcat_portal/lib/src/features/fleet_management/presentation/widgets/technical_specs_section.dart`
-  - `apps/tomcat_portal/lib/src/features/fleet_management/presentation/widgets/identification_section.dart`
+```dart
+// features/<feature>/domain/entities/aircraft_status.dart: stable typed value, no copy
+enum AircraftStatus { active, grounded, maintenance }
+
+// features/<feature>/presentation/widgets/aircraft_status_label.dart: UI mapping
+extension AircraftStatusLabel on AircraftStatus {
+  String get label => switch (this) {
+        AircraftStatus.active => 'Active'.hardcoded,
+        AircraftStatus.grounded => 'Grounded'.hardcoded,
+        AircraftStatus.maintenance => 'In maintenance'.hardcoded,
+      };
+}
+```
 
 Notes:
 

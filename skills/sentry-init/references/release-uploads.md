@@ -1,7 +1,6 @@
 # Release Uploads — Source Maps & Debug Symbols
 
-> Adapted from `Engage-srl/pollicino_viewer` — `apps/tomcat_portal/ai_docs/sentry/sentry_upload_source_maps.md`
-> and `sentry_ci_next_steps.md`. Project-specific paths replaced with generic equivalents.
+> Adapted from internal production notes.
 
 ---
 

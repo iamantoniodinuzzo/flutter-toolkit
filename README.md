@@ -68,7 +68,7 @@ codex plugin add flutter-toolkit@flutter-toolkit
 To install the published release reproducibly, use this alternative:
 
 ```bash
-codex plugin marketplace add iamantoniodinuzzo/flutter-toolkit --ref v3.11.0
+codex plugin marketplace add iamantoniodinuzzo/flutter-toolkit --ref v<version>
 codex plugin add flutter-toolkit@flutter-toolkit
 ```
 

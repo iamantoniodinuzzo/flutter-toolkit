@@ -37,19 +37,16 @@ Use the `Write` tool with empty `.gitkeep` content to create parent directories 
 ```
 lib/src/features/<name>/domain/entities/.gitkeep
 lib/src/features/<name>/domain/repositories/.gitkeep
-lib/src/features/<name>/domain/value_objects/.gitkeep
-lib/src/features/<name>/domain/failures/.gitkeep
-lib/src/features/<name>/data/datasources/.gitkeep
+lib/src/features/<name>/domain/exceptions/.gitkeep
 lib/src/features/<name>/data/models/.gitkeep
 lib/src/features/<name>/data/repositories/.gitkeep
-lib/src/features/<name>/data/mappers/.gitkeep
-lib/src/features/<name>/application/providers/.gitkeep
-lib/src/features/<name>/application/notifiers/.gitkeep
-lib/src/features/<name>/application/states/.gitkeep
+lib/src/features/<name>/application/.gitkeep
 lib/src/features/<name>/presentation/screens/.gitkeep
 lib/src/features/<name>/presentation/widgets/.gitkeep
-lib/src/features/<name>/presentation/controllers/.gitkeep
 ```
+
+Controllers (`Notifier` / `AsyncNotifier`) live directly in `application/`. A datasource, when the feature has
+one, is a file under `data/` (for example `data/<name>_datasource.dart`), not a folder.
 
 ### Sub-feature → `lib/src/features/<parent>/<name>/`
 
@@ -58,7 +55,6 @@ Sub-features are UI-only. Domain, data, and application layers are provided by t
 ```
 lib/src/features/<parent>/<name>/presentation/screens/.gitkeep
 lib/src/features/<parent>/<name>/presentation/widgets/.gitkeep
-lib/src/features/<parent>/<name>/presentation/controllers/.gitkeep
 ```
 
 ---
@@ -87,8 +83,10 @@ Read the following files **in parallel** from inside this skill's own `reference
 - `references/patterns/widget-classes-no-build-helpers.md`
 - `references/patterns/flutter-side-effects.md`
 
-**Logging standard**
+**Logging and codegen**
 - `references/logging.md`
+- `references/error-logging-contract.md`
+- `references/codegen.md`
 
 ### Conditional (load only when Phase 1 answer matches)
 
@@ -110,16 +108,19 @@ Feature: <name>  (<top-level> | <sub-feature of parent>)
 
 Domain
   - Entities:           <e.g. Order, OrderItem>
-  - Repository iface:   <Name>Repository
-  - Failures:           <e.g. OrderFailure.notFound, OrderFailure.permissionDenied>
+  - Repository iface:   <Name>Repository  (always created, in domain/repositories/)
+  - Exceptions:         sealed <Name>Exception extends AppException
+                        <e.g. FetchOrderException, OrderNotFoundException>
 
 Data
   - Source:             <Firestore | REST endpoint | SQLite | none>
-  - Model:              <Name>Model  →  toEntity() / fromJson()
-  - Repo impl:          <Name>RepositoryImpl maps DataException → DomainFailure
+  - Model:              <Name>Model  →  fromMap() / toMap() / toEntity()  (entities have no serialization)
+  - Repo impl:          <Name>RepositoryImpl maps infrastructure errors → <Name>Exception
+  - Provider:           <name>Repository provider returns the <Name>Repository interface
 
 Application
-  - Provider:           <feature>Provider  (extends Notifier<<State>>)
+  - Controller:         <feature>Controller  (extends Notifier<<State>>), calls the repository;
+                        a service only if logic spans repositories
   - State:              <AsyncValue<T> | record | sealed class>
   - Side effects:       command pattern — mutation methods return Future<void>
 
@@ -129,9 +130,10 @@ Presentation
   - Navigation:         context.goNamed('<routeName>')  (never push for deep-linkable routes)
 
 Logging
-  - Logger naming:      Logger('<feature>.domain'), Logger('<feature>.data'),
-                        Logger('<feature>.application'), Logger('<feature>.presentation')
+  - Logger:             LoggerService via loggerServiceProvider (notifier: ref.read; repo/datasource: constructor)
+                        message tag: [<feature>][<layer>]
   - Async errors:       AsyncErrorLogger handles them — no manual try/catch in async providers
+                        (contract: references/error-logging-contract.md)
 
 GoRouter notes (critical for web / deep-link targets)
   - push() does NOT update browser URL in go_router v11.1.2+; use go/goNamed always
@@ -148,16 +150,14 @@ Ask the user to confirm or correct the contract before moving to implementation.
 
 ```
 ✅ Scaffolded:          lib/src/features/<[parent/]name>/
-✅ Architecture loaded: 15 reference files (breaking + patterns + logging)
+✅ Architecture loaded: 17 reference files (breaking + patterns + logging + error contract + codegen)
 ✅ Contract confirmed above — ready to implement
 
 Next manual steps (not handled by this skill):
   - gh issue create …                        (if issue not yet created)
   - git start feature <n>_<name>             (creates feature/<n>_<name> from develop)
   - Implement layers: domain → data → application → presentation
-  - dart run build_runner build --build-filter="<path>"   (after adding @riverpod / @JsonSerializable —
-                                                             never with --delete-conflicting-outputs; see
-                                                             ai_docs/FLUTTER_RULES.md)
+  - codegen: the command in references/codegen.md          (after adding @riverpod or any generated part)
   - /unit-test                               (domain + application layer tests)
   - gh issue close <N>                       (GitHub does NOT auto-close on PR merge)
 ```

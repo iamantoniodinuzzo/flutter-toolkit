@@ -29,7 +29,7 @@ Use a permitted read-only subagent, otherwise list directly all `.dart` files re
 
 ```
 List all .dart files (excluding .g.dart and *_test.dart)
-in apps/pollicino_viewer/lib/src/features/<name>/presentation/. 
+in <package root>/lib/src/features/<name>/presentation/. 
 For each file read only the first 30 lines and report:
 - Widget class name and superclass (StatelessWidget, StatefulWidget, ConsumerWidget, ConsumerStatefulWidget)
 - Presence of existing `static const *Key` fields
@@ -122,9 +122,7 @@ Before producing any code, read these in order:
 
 1. **The target widget file** — understand every Key, interactive element, conditional UI, navigation, async state.
 2. **The widget's dependencies** — controllers, services, providers it consumes via `ref.watch` / `ref.read`.
-3. **The app's central mocks file** — reuse existing mocks:
-   - `pollicino_viewer`: `apps/pollicino_viewer/test/src/mocks.dart`
-   - `tomcat_portal`: `apps/tomcat_portal/test/src/mocks.dart`
+3. **The package's central mocks file** — reuse existing mocks. It is usually `test/src/mocks.dart` in the package that owns the widget; find it with `grep -rl "extends Mock implements" test/`.
 4. **Sibling test files** — scan for existing Robots that can be composed (child robots).
 
 > **Rule — no duplicate mocks**: never declare `class MockFoo extends Mock implements Foo {}` if one already exists centrally or in a sibling.
@@ -688,7 +686,7 @@ Same rule as unit tests:
 When adding a new mock, grep first:
 
 ```bash
-grep -r "implements FooRepository" apps/<app>/test/
+grep -r "implements FooRepository" test/   # from the package root
 ```
 
 If it appears in 2+ features → move to `mocks.dart`.

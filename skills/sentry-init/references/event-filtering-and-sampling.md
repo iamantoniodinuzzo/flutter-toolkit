@@ -1,8 +1,7 @@
 # Event Filtering, Sampling, and Data Minimization
 
-> Adapted from `Engage-srl/pollicino_viewer` — `apps/tomcat_portal/ai_docs/sentry/sentry_additional_options.md`,
-> and from Andrea Bizzotto's *Flutter in Production* error-monitoring module (additional options/APIs lesson
-> and the Sentry-bill lesson). Project-specific paths replaced with generic equivalents.
+> Adapted from internal production notes and from Andrea Bizzotto's *Flutter in Production* error-monitoring
+> module (additional options/APIs lesson and the Sentry-bill lesson).
 
 ---
 

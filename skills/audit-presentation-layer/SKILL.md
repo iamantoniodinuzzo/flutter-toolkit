@@ -253,7 +253,7 @@ Never edit files that were not explicitly approved by the user.
 - `audit the presentation layer of features/booking`
 - `audit this widget: lib/src/features/auth/presentation/sign_in_screen.dart`
 - `find UI violations in features/flight_plan/presentation/`
-- `/audit-presentation-layer apps/pollicino_viewer/lib/src/features/booking/presentation/`
+- `/audit-presentation-layer apps/<app>/lib/src/features/booking/presentation/`
 - `/audit-presentation-layer lib/src/features/home/presentation/ --platform=web`
 - `/audit-presentation-layer lib/src/features/auth/presentation/ --platform=mobile`
 

@@ -98,7 +98,7 @@ Heuristic application notes:
   the class line when > 15. Also flag domain files > 400 lines as a secondary signal.
 - **DOMAIN-FAIL-01**: flag `throw Exception(`, `throw StateError(`, or any `throw` whose
   expression does not start with a class name that plausibly extends `AppException` or a named
-  feature-level abstract exception. Also flag `throw ArgumentError(` and similar stdlib errors
+  feature-level sealed exception. Also flag `throw ArgumentError(` and similar stdlib errors
   when inside domain logic (not in factory constructors performing validation).
 - **DOMAIN-FAIL-02**: flag `abstract class <X> extends AppException` or
   `abstract class <X>Exception extends <Y>` in `domain/` when the declaration lacks the `sealed`

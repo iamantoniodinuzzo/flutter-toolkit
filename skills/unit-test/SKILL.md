@@ -63,11 +63,11 @@ If no test file exists, skip to Phase 2.
 Before writing a line of test code:
 
 1. **Read the target file(s)** — every public API, constructor param, dependency, thrown exception.
-2. **Read the central mocks file** — `apps/pollicino_viewer/test/src/mocks.dart`. Reuse every mock that exists there.
+2. **Read the central mocks file** — the package's shared mocks file (usually `test/src/mocks.dart`; find it with `grep -rl "extends Mock implements" test/`). Reuse every mock that exists there.
 3. **Grep sibling test files** — `test/src/features/<feature>/` — for locally declared mocks.
 4. For each dependency: does `class Mock<Dep>` already exist? Use it; never redeclare.
 
-> Rule: grep first. `grep -r "implements FooRepository" apps/pollicino_viewer/test/`
+> Rule: grep first. `grep -r "implements FooRepository" test/` (from the package root)
 
 When scanning a **feature folder**, exclude from scope:
 - `presentation/` — widget tests, out of scope
@@ -391,7 +391,7 @@ Rules:
 For each class:
 
 1. **Write** — generate or update the test file.
-2. **Run** — from `apps/pollicino_viewer/`:
+2. **Run** — from the root of the package that owns the file under test (the folder with its `pubspec.yaml`):
    ```bash
    flutter test test/src/features/<path>/<file>_test.dart
    ```
