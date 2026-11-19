@@ -43,6 +43,8 @@ Use `scripts/bump-version.sh` — it syncs all five version locations atomically
 bash scripts/bump-version.sh patch   # or minor / major / explicit X.Y.Z
 ```
 
+The script first runs `npm run validate && npm test` and aborts on failure, before touching any file: `git finish` tags and publishes in one step, so CI cannot gate the release.
+
 The script prints the exact follow-up `git start release` / `git c` / `git finish -y` commands.
 It does NOT commit or tag — that is owned by git-flow `git finish`.
 
