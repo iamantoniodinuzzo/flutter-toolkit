@@ -36,6 +36,11 @@ if [ $# -ne 1 ]; then
   exit 1
 fi
 
+# ── 1b. Release gate: tests must be green before any file changes ─────────────
+# `git finish` tags and publishes in one step; CI only runs after the push.
+# Skipped when tests/ is absent (tests/skills/versioning.test.js runs this script in a bare fixture).
+if [ -d "$REPO_ROOT/tests" ]; then (cd "$REPO_ROOT" && npm run validate && npm test); fi
+
 LEVEL="$1"
 
 # ── 2. Bump package.json (npm handles semver arithmetic) ─────────────────────
