@@ -64,7 +64,7 @@ hands an error to); `ProviderObserver` is a **channel** (where errors arrive fro
 
 | `HAS_LOGGER_SERVICE` | `SINK_PROVIDER` | `SINK_CAPTURE` call shape |
 |-----------------------|------------------|-----------------------------|
-| `true` | `loggerServiceProvider` | `sink.e(msg, error, stackTrace)` — takes a message |
+| `true` | `loggerServiceProvider` | `sink.e(message, error, stackTrace)` — takes a message |
 | `false` | `errorLoggerProvider` | `sink.logException(error, stackTrace)` — no message |
 
 The two shapes are not interchangeable — Branch A's `.e(...)` always takes a leading message string,
@@ -349,46 +349,46 @@ class SentryLoggerService implements LoggerService {
   final LoggerService _delegate;
 
   @override
-  void t(String msg, [Object? error, StackTrace? st]) {
-    _delegate.t(msg, error, st);
+  void t(String message, [Object? error, StackTrace? stackTrace]) {
+    _delegate.t(message, error, stackTrace);
     // trace: no Sentry action
   }
 
   @override
-  void d(String msg, [Object? error, StackTrace? st]) {
-    _delegate.d(msg, error, st);
-    Sentry.addBreadcrumb(Breadcrumb(message: msg, level: SentryLevel.debug)).ignore();
+  void d(String message, [Object? error, StackTrace? stackTrace]) {
+    _delegate.d(message, error, stackTrace);
+    Sentry.addBreadcrumb(Breadcrumb(message: message, level: SentryLevel.debug)).ignore();
   }
 
   @override
-  void i(String msg, [Object? error, StackTrace? st]) {
-    _delegate.i(msg, error, st);
-    Sentry.addBreadcrumb(Breadcrumb(message: msg, level: SentryLevel.info)).ignore();
+  void i(String message, [Object? error, StackTrace? stackTrace]) {
+    _delegate.i(message, error, stackTrace);
+    Sentry.addBreadcrumb(Breadcrumb(message: message, level: SentryLevel.info)).ignore();
   }
 
   @override
-  void w(String msg, [Object? error, StackTrace? st]) {
-    _delegate.w(msg, error, st);
-    _capture(msg, error, st, SentryLevel.warning);
+  void w(String message, [Object? error, StackTrace? stackTrace]) {
+    _delegate.w(message, error, stackTrace);
+    _capture(message, error, stackTrace, SentryLevel.warning);
   }
 
   @override
-  void e(String msg, [Object? error, StackTrace? st]) {
-    _delegate.e(msg, error, st);
-    _capture(msg, error, st, SentryLevel.error);
+  void e(String message, [Object? error, StackTrace? stackTrace]) {
+    _delegate.e(message, error, stackTrace);
+    _capture(message, error, stackTrace, SentryLevel.error);
   }
 
   @override
-  void f(String msg, [Object? error, StackTrace? st]) {
-    _delegate.f(msg, error, st);
-    _capture(msg, error, st, SentryLevel.fatal);
+  void f(String message, [Object? error, StackTrace? stackTrace]) {
+    _delegate.f(message, error, stackTrace);
+    _capture(message, error, stackTrace, SentryLevel.fatal);
   }
 
-  void _capture(String msg, Object? error, StackTrace? st, SentryLevel level) {
+  void _capture(String message, Object? error, StackTrace? stackTrace, SentryLevel level) {
     if (error != null) {
-      Sentry.captureException(error, stackTrace: st).ignore();
+      Sentry.captureException(error, stackTrace: stackTrace).ignore();
     } else {
-      Sentry.captureMessage(msg, level: level).ignore();
+      Sentry.captureMessage(message, level: level).ignore();
     }
   }
 }
@@ -445,7 +445,7 @@ class ErrorLogger {
 ErrorLogger errorLogger(Ref ref) => const ErrorLogger();
 ```
 
-Run codegen after generating: `dart run build_runner build --delete-conflicting-outputs`.
+Run codegen after generating: the command in `references/codegen.md`.
 
 #### B.2 Register the provider
 
@@ -460,39 +460,17 @@ Grep for `ProviderObserver` in the project.
 
 - **`AsyncErrorLogger` (or equivalent) already exists** → no action needed. Sentry capture flows
   automatically via `SINK_CAPTURE` when the existing observer fires.
-- **No `ProviderObserver` found** → emit this one and register it. Riverpod v3 shape — do not use
-  `didUpdateProvider`/`AsyncError` pattern-matching, it's v2 and misses synchronous provider failures:
+- **No `ProviderObserver` found** → emit the `AsyncErrorLogger` defined in
+  `references/error-logging-contract.md` (§2: Riverpod v3 `providerDidFail`, the `ProviderException`
+  guard, the sink guard, sink resolved through `context.container.read`) and register it in
+  `observers:`. The contract's file is the one definition; do not re-type it here.
 
-```dart
-class AsyncErrorLogger extends ProviderObserver {
-  const AsyncErrorLogger();
+Substitute the sink when you emit it:
 
-  @override
-  void providerDidFail(
-    ProviderObserverContext context,
-    Object error,
-    StackTrace stackTrace,
-  ) {
-    if (error is ProviderException) return;               // avoid double-report per dependent provider
-    if (context.provider == SINK_PROVIDER) return;         // avoid recursing through the sink's own failure
-
-    final sink = context.container.read(SINK_PROVIDER);
-    // SINK_CAPTURE — Branch A: sink.e('Provider ${context.provider.name ?? context.provider.runtimeType} error', error, stackTrace);
-    // SINK_CAPTURE — Branch B: sink.logException(error, stackTrace);
-  }
-}
-```
-
-Resolve the sink via `context.container.read(SINK_PROVIDER)`, never a hand-constructed instance —
-otherwise `overrideWithValue(FakeSink())` in tests silently stops working. Register in `ProviderContainer`
-/ `ProviderScope`:
-
-```dart
-ProviderScope(
-  observers: [const AsyncErrorLogger()],
-  child: ...,
-)
-```
+| In the contract | Branch A (`LoggerService` exists) | Branch B (scaffolded `ErrorLogger`) |
+|---|---|---|
+| `loggerServiceProvider` | `SINK_PROVIDER` (`loggerServiceProvider`) | `SINK_PROVIDER` (`errorLoggerProvider`) |
+| `logger.e('Provider … error', error, stackTrace)` | unchanged: `SINK_CAPTURE` is `.e(message, error, stackTrace)` | `sink.logException(error, stackTrace)` |
 
 ---
 
@@ -509,12 +487,14 @@ This is also where an expected-error filter belongs — e.g. the course's case s
 ```dart
 catch (e, st) {
   final hasCachedData = /* app-state check, e.g. local DB non-empty */;
-  if (e is DioException && e.response == null && hasCachedData) {
-    return cached;                                // expected offline, fallback available: do not report
+  if (!hasCachedData) rethrow;                    // propagates: the observer reports it, do not log here
+  // From here on the error is swallowed, because a fallback exists.
+  if (e is DioException && e.response == null) {
+    return cached;                                // expected offline: do not report
   }
   // SINK_CAPTURE — Branch A: ref.read(SINK_PROVIDER).e('...', e, st);
   // SINK_CAPTURE — Branch B: ref.read(SINK_PROVIDER).logException(e, st);
-  if (!hasCachedData) rethrow;                    // propagate — the observer must not also log this
+  return cached;                                  // unexpected and swallowed: reported above, fall back
 }
 ```
 
@@ -621,7 +601,7 @@ SentryFeedbackService sentryFeedbackService(Ref ref) =>
     SentryFeedbackService(ref);
 ```
 
-Run codegen: `dart run build_runner build --delete-conflicting-outputs`.
+Run codegen: the command in `references/codegen.md`.
 
 Known limitations to document in the service file:
 - CanvasKit only on web — HTML renderer produces blank screenshots.
@@ -736,7 +716,7 @@ Items that cannot be automated:
 - [ ] Provide Sentry `org` and `project` slugs → update `pubspec.yaml` `sentry:` block
 - [ ] Generate `SENTRY_AUTH_TOKEN` in Sentry dashboard and add to CI secrets
 - [ ] Add `SENTRY_DSN` prod value to CI secrets / `dart_defines.json.example`
-- [ ] Run `dart run build_runner build` to generate `sentry_feedback_service.g.dart`
+- [ ] Run the codegen command in `references/codegen.md` to generate `sentry_feedback_service.g.dart`
 - [ ] Smoke-test: `flutter run --flavor dev --dart-define=SENTRY_DEBUG_REPORTING=true`, throw a deliberate
       exception, verify it appears in the Sentry dashboard tagged with the `dev` environment
 - [ ] Get familiar with the dashboard's filter/sort/search and archive/resolve workflow before the first

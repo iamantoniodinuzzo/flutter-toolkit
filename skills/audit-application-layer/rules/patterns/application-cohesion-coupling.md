@@ -30,7 +30,7 @@ repository's whole job.
 
 ```dart
 // ❌ BAD — notifier bypasses the facade
-import '../data/datasource/booking_remote_datasource.dart';
+import '../data/booking_remote_datasource.dart';
 
 class BookingListNotifier extends _$BookingListNotifier {
   Future<void> refresh() async {

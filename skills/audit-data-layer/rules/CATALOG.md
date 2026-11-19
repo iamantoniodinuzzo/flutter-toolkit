@@ -86,7 +86,7 @@ auto-fix is safe (`autofix_safe`). Phase 3 of the skill scans using this catalog
 - **Heuristic**: in files under `data/`, find `throw Exception(`, `throw StateError(`,
   `throw Error(`, `throw ArgumentError(`. Do NOT flag `throw` of classes whose name ends
   in `Exception` and is project-defined (i.e. not a stdlib type from the list above).
-- **Fix**: define a concrete datasource/feature exception extending the feature-level abstract
+- **Fix**: define a concrete datasource/feature exception extending the feature-level sealed
   exception (which extends `AppException`), and throw it instead. The exception class belongs
   in `domain/exceptions/`.
 - **autofix_safe**: false (exception class name and code string are project-specific)

@@ -28,12 +28,19 @@ auto-fix is safe (`autofix_safe`). Phase 3 of the skill scans using this catalog
 
 ### APP-NOTIF-02
 - **Severity**: error
-- **Source**: `rules/breaking/riverpod-async-mutations.md`, `rules/breaking/dart-async-errors.md`
+- **Source**: `rules/breaking/riverpod-async-mutations.md`, `rules/breaking/dart-async-errors.md`,
+  `rules/patterns/error-logging-contract.md`
 - **What**: Notifier mutation method contains a manual `try/catch` block wrapping `await`
   expressions for the purpose of error *reporting* (e.g. updating state to an error or
-  logging). Riverpod's `AsyncNotifier` + `AsyncErrorLogger` already handle async errors
-  via the single-error-channel pattern; manual try/catch duplicates that mechanism,
-  suppresses the automatic error propagation, and makes the code harder to test.
+  logging). Riverpod's `AsyncNotifier` + the registered `ProviderObserver` (the `AsyncErrorLogger`
+  of the contract) already handle async errors via the single-error-channel pattern; manual
+  try/catch duplicates that mechanism, suppresses the automatic error propagation, and makes
+  the code harder to test. A `catch` that *swallows* the error and falls back is not flagged:
+  the observer never sees it, so logging there is correct.
+- **Project-level finding**: when the project registers no such observer (no `ProviderObserver`
+  overriding `providerDidFail` in an `observers:` list, matched by shape, not name), the rule
+  still flags, and the report adds one project-level finding: add the observer first, then
+  remove the `try/catch`. Removing it alone would silence the errors.
 - **Heuristic**: inside a class that `extends AsyncNotifier`, `AutoDisposeAsyncNotifier`,
   `Notifier`, `AutoDisposeNotifier`, `StreamNotifier`, or `AutoDisposeStreamNotifier`,
   find `try {` blocks in public (non-`build`) methods that contain `await` and whose
@@ -41,8 +48,9 @@ auto-fix is safe (`autofix_safe`). Phase 3 of the skill scans using this catalog
   line. Do NOT flag `try/catch` that explicitly converts an infrastructure exception to a
   domain exception (a valid pattern in notifiers that directly call datasources, though
   preferably that conversion lives in the data layer).
-- **Fix**: remove the `try/catch` wrapper and let Riverpod surface the domain exception
-  through state automatically. If custom error recovery is needed, use `.guard()` or
+- **Fix**: (observer registered) remove the `try/catch` wrapper and let Riverpod surface the
+  domain exception through state automatically. (No observer) add it first, see the
+  project-level finding. If custom error recovery is needed, use `.guard()` or
   handle at the presentation layer via `ref.listen`.
 - **autofix_safe**: false (requires verifying intent of each try/catch block)
 

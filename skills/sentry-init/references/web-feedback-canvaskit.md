@@ -1,7 +1,6 @@
 # Web BetterFeedback + CanvasKit Renderer Gate
 
-> Adapted from `Engage-srl/pollicino_viewer` — `apps/tomcat_portal/ai_docs/sentry/feedback_sentry_integration.md`.
-> Project-specific paths replaced with generic equivalents.
+> Adapted from internal production notes.
 
 ---
 

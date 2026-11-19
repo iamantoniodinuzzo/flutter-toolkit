@@ -19,7 +19,8 @@ And a cascade: the failed `when()` leaves mocktail in a corrupted verification s
 
 ## The Fix: Pre-stub in `setUp()`
 
-Stub every non-nullable-returning method with a safe default **in `setUp()`**, before any test-specific `when()` calls:
+Stub every non-nullable-returning method with a safe default **in `setUp()`**, before any test-specific `when()` calls.
+`LoggerService` methods are positional, `(message, [error, stackTrace])`: stub the arity your code calls (see `error-logging-contract.md`).
 
 ```dart
 setUp(() {

@@ -4,7 +4,7 @@
 
 A shared collection of agent skills and optional Claude Code subagents for Flutter/Dart projects using Riverpod v3, GoRouter, clean architecture, and Melos monorepo tooling.
 
-This is a **toolkit repo** — the actual Flutter app lives elsewhere (e.g. `apps/tomcat_portal/`, `apps/pollicino_viewer/`). Application paths are relative to the Flutter project root. Bundled references and scripts resolve from the installed skill directory; sibling skills resolve through the host registry or sibling catalog layout.
+This is a **toolkit repo** — the actual Flutter app lives elsewhere (for example under `apps/<app>/` in a Melos monorepo, or the repository root of a single app). Application paths are relative to the Flutter project root. Bundled references and scripts resolve from the installed skill directory; sibling skills resolve through the host registry or sibling catalog layout.
 
 ## Repo structure
 

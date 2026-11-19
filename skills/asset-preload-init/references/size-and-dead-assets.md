@@ -37,7 +37,6 @@ The audit **only reports**. It never deletes.
 
 ## Reference implementation
 
-Engage-srl/pollicino_viewer #1155 (`apps/tomcat_portal`): `lib/main.dart` (warm-up overlapped with container setup,
-handler at creation), `lib/src/core/widget/tomcat_logo.dart` (paths public so widget and warm-up share them),
-`assets/sprites/vehicles/` 22.0 MB → 0.38 MB, two unused logo files removed. Of 21 image files only 2 logo SVGs needed
+One production app: `lib/main.dart` (warm-up overlapped with container setup, handler at creation), the logo widget
+(asset paths public so widget and warm-up share them), a sprite folder 22.0 MB → 0.38 MB, two unused logo files removed. Of 21 image files only 2 logo SVGs needed
 warming; 16 sprites were preloaded by their registry, 1 PNG was read only by a PDF, 2 were unreferenced.

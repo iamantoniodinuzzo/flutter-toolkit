@@ -73,6 +73,46 @@ function validate(root = path.resolve(__dirname, '..')) {
     }
     assert(/(?:missing|absent|manca)/i.test(text), `${name}: missing partial-install fallback`);
   }
+  // Shared instructions name no project and use Riverpod v3 `Ref ref` (`WidgetRef ref` in widgets is correct).
+  const projectName = /pollicino|tomcat|engage-srl|com\.engage\./i;
+  const v2Ref = /\b(?!Widget)[A-Z]\w*Ref ref\b/;
+  for (const folder of ['skills', 'agents', 'ai_docs']) {
+    const dir = path.join(root, folder);
+    if (!fs.existsSync(dir)) continue;
+    for (const file of files(dir).filter(f => f.endsWith('.md'))) {
+      const text = fs.readFileSync(file, 'utf8');
+      const relative = path.relative(root, file);
+      assert(!projectName.test(text), `${relative}: project-specific name`);
+      assert(!v2Ref.test(text), `${relative}: Riverpod v2 Ref parameter (use \`Ref ref\`)`);
+    }
+  }
+  // A skill is installed alone, so shared texts are byte-identical copies of one canonical file.
+  // The `<!-- source -->` header and line endings are not part of the text.
+  const patterns = 'scaffold-feature/references/patterns';
+  const copies = [
+    ['scaffold-feature/references/error-logging-contract.md', ['sentry-init/references/error-logging-contract.md',
+      'audit-application-layer/rules/patterns/error-logging-contract.md', 'unit-test/patterns/error-logging-contract.md']],
+    ['scaffold-feature/references/codegen.md', ['sentry-init/references/codegen.md']],
+    [`${patterns}/feature-creation.md`, ['audit-domain-layer/rules/patterns/feature-creation.md',
+      'audit-application-layer/rules/patterns/feature-creation.md']],
+    [`${patterns}/repository-pattern.md`, ['audit-domain-layer/rules/patterns/repository-pattern.md',
+      'audit-data-layer/rules/patterns/repository-pattern.md']],
+    [`${patterns}/exception-handling.md`, ['audit-domain-layer/rules/patterns/exception-handling.md',
+      'audit-data-layer/rules/patterns/exception-handling.md']],
+    [`${patterns}/no-ui-strings-outside-ui.md`, ['audit-domain-layer/rules/patterns/no-ui-strings-outside-ui.md']],
+  ];
+  const normalize = text => text.replace(/\r\n/g, '\n').replace(/^<!-- source:[^\n]*-->\n/, '');
+  const read = relative => {
+    const file = path.join(root, 'skills', relative);
+    assert(fs.existsSync(file), `skills/${relative}: missing shared copy`);
+    return normalize(fs.readFileSync(file, 'utf8'));
+  };
+  for (const [canonical, targets] of copies) {
+    const expected = read(canonical);
+    for (const target of targets) {
+      assert(read(target) === expected, `skills/${target}: shared copy drifted from skills/${canonical}`);
+    }
+  }
   return { total: names.length, active: names.length - 1 };
 }
 

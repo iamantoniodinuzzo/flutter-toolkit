@@ -1,9 +1,7 @@
 # Error Capture Architecture: Sink, Channel, Call Site
 
-> Adapted from `Engage-srl/pollicino_viewer` — `apps/tomcat_portal/ai_docs/sentry/feedback_sentry_integration.md`
-> and `sentry_error_capture_architecture.md`, and from Andrea Bizzotto's *Flutter in Production* error-monitoring
-> module (case study: capturing exceptions explicitly). Project-specific paths replaced with generic
-> equivalents.
+> Adapted from internal production notes and from Andrea Bizzotto's *Flutter in Production* error-monitoring
+> module (case study: capturing exceptions explicitly).
 
 ---
 
@@ -123,51 +121,11 @@ rule below. Nothing downstream needs to know which branch produced the sink.
 
 ## AsyncErrorLogger (shared, Riverpod v3)
 
-```dart
-class AsyncErrorLogger extends ProviderObserver {
-  const AsyncErrorLogger();
-
-  @override
-  void providerDidFail(
-    ProviderObserverContext context,
-    Object error,
-    StackTrace stackTrace,
-  ) {
-    if (error is ProviderException) return;               // avoid double-report per dependent provider
-    if (context.provider == SINK_PROVIDER) return;         // avoid recursing through the sink's own failure
-
-    final sink = context.container.read(SINK_PROVIDER);
-    // Branch A: sink.e('Provider ${context.provider.name ?? context.provider.runtimeType} error', error, stackTrace);
-    // Branch B: sink.logException(error, stackTrace);
-  }
-}
-```
-
-Three things distinguish this from a v2 `didUpdateProvider`/`AsyncError` pattern-match, and all three
-matter:
-
-1. **`providerDidFail`, not `didUpdateProvider`.** Riverpod v3 replaced the
-   `ProviderBase`/`ProviderContainer` parameter pair with a single `ProviderObserverContext`, and added a
-   purpose-built failure hook. `didUpdateProvider` + pattern-matching on `AsyncError` misses *synchronous*
-   provider failures entirely.
-2. **The `ProviderException` guard.** Without it, one root failure reports once per dependent provider in
-   the chain — the toolkit already documents this rule in
-   `../../scaffold-feature/references/breaking/riverpod-core.md`; this observer just has to actually
-   follow it.
-3. **Resolve the sink via `context.container.read(SINK_PROVIDER)`, never a hand-constructed instance.**
-   Constructing `AsyncErrorLogger(SomeSinkImpl())` outside the container means
-   `overrideWithValue(FakeSink())` in tests silently never reaches this observer — the whole point of using
-   a sink instead of calling `Sentry.captureException` directly is lost if the override doesn't take
-   effect here too.
-
-Register in `ProviderContainer` / `ProviderScope`:
-
-```dart
-ProviderScope(
-  observers: [const AsyncErrorLogger()],
-  child: ...,
-)
-```
+The observer is defined once, in `error-logging-contract.md` (§2): `providerDidFail` instead of the v2
+`didUpdateProvider`/`AsyncError` pattern-match, the `ProviderException` guard (one root failure, one
+report), the sink guard, and the sink resolved through `context.container.read(...)` so that a test override
+reaches it. This skill emits that observer with `SINK_PROVIDER` as the sink (Phase 4.2 gives the
+substitution for each branch) and does not restate its code.
 
 ---
 
@@ -195,12 +153,13 @@ Future<void> loadInitialData() async {
     await db.save(data);
   } catch (e, st) {
     final hasCachedData = await db.isNotEmpty();
-    if (e is DioException && e.response == null && hasCachedData) {
-      return;                                    // expected offline, fallback available: do not report
+    if (!hasCachedData) rethrow;                  // propagates: AsyncErrorLogger reports it, do not log here
+    // From here on the error is swallowed, because a fallback exists.
+    if (e is DioException && e.response == null) {
+      return;                                    // expected offline: do not report
     }
     // Branch A: ref.read(SINK_PROVIDER).e('Initial data load failed', e, st);
     // Branch B: ref.read(SINK_PROVIDER).logException(e, st);
-    if (!hasCachedData) rethrow;                  // propagate — AsyncErrorLogger must not also log this
   }
 }
 ```

@@ -22,24 +22,26 @@
 | `e()` | Error — caught exception with stack trace |
 | `f()` | Fatal — unrecoverable state that warrants crash reporting |
 
-## Logger declaration
+## Logger access
 
-One logger per layer. Declare as a module-level `final`:
+Every method is `(String message, [Object? error, StackTrace? stackTrace])`: error and stack trace are
+**positional**, never named. The logger is the `LoggerService` provider, injected so tests can override it.
+The full interface and the provider are in `error-logging-contract.md`.
 
-```dart
-final _log = Logger('feature_name.layer');
-```
+- **Notifier / controller**: `ref.read(loggerServiceProvider)`.
+- **Repository / datasource**: receives a `LoggerService` in its constructor; the provider that builds it
+  passes `ref.watch(loggerServiceProvider)`.
+- **Widget**: `ref.read(loggerServiceProvider)` inside a callback, never in `build()`.
 
-Examples:
-```dart
-final _log = Logger('auth.data');
-final _log = Logger('order_list.application');
-```
+The `[feature][layer]` tag stays in the message text, so one logger serves every layer.
 
 ## AsyncErrorLogger rule
 
-**Never** log errors inside async providers (Notifiers, StreamProviders, FutureProviders).
-`AsyncErrorLogger` observes `ProviderObserver` and logs automatically.
+**Never** log errors inside async providers (Notifiers, StreamProviders, FutureProviders) when the `catch`
+rethrows or lets the state become `AsyncError`. `AsyncErrorLogger` is a `ProviderObserver` that reports
+those failures automatically. A `catch` that **swallows** the error is the one place to log by hand.
+The observer's code, how to detect an existing one, and the swallow-vs-propagate rule are in
+`error-logging-contract.md`.
 
 ```dart
 // BAD — duplicates error logging
@@ -49,7 +51,7 @@ class OrderNotifier extends AsyncNotifier<List<Order>> {
     try {
       return await ref.watch(orderRepositoryProvider).fetchAll();
     } catch (e, st) {
-      _log.e('[order_list][application] fetch failed', error: e, stackTrace: st);
+      ref.read(loggerServiceProvider).e('[order_list][application] fetch failed', e, st);
       rethrow; // logged twice
     }
   }
@@ -69,53 +71,60 @@ class OrderNotifier extends AsyncNotifier<List<Order>> {
 ### Data — datasource
 
 ```dart
-final _log = Logger('product.data');
+class ProductDatasource {
+  ProductDatasource(this._firestore, this._logger);
+  final FirebaseFirestore _firestore;
+  final LoggerService _logger;
 
-Future<ProductDto> fetchProduct(String id) async {
-  _log.d('[product][data] fetch product – id=$id');
-  final doc = await _firestore.collection('products').doc(id).get();
-  _log.i('[product][data] product fetched – id=$id, exists=${doc.exists}');
-  return ProductDto.fromJson(doc.data()!);
-}
-```
-
-### Data — repository impl (maps exceptions to failures)
-
-```dart
-final _log = Logger('product.data');
-
-@override
-Future<Either<ProductFailure, Product>> getProduct(String id) async {
-  try {
-    final dto = await _datasource.fetchProduct(id);
-    return right(dto.toEntity());
-  } on FirebaseException catch (e, st) {
-    _log.e('[product][data] Firestore error – id=$id, code=${e.code}', error: e, stackTrace: st);
-    return left(ProductFailure.notFound(e.code));
+  Future<ProductModel> fetchProduct(String id) async {
+    _logger.d('[product][data] fetch product – id=$id');
+    final doc = await _firestore.collection('products').doc(id).get();
+    _logger.i('[product][data] product fetched – id=$id, exists=${doc.exists}');
+    return ProductModel.fromMap(doc.data()!);
   }
 }
 ```
 
+### Data — repository impl (maps infrastructure errors to domain exceptions)
+
+```dart
+class ProductRepositoryImpl implements ProductRepository {
+  ProductRepositoryImpl(this._datasource);
+  final ProductDatasource _datasource;
+
+  @override
+  Future<Product> fetchProduct(String id) async {
+    try {
+      final model = await _datasource.fetchProduct(id);
+      return model.toEntity();
+    } on FirebaseException catch (e, st) {
+      // Converts and propagates: no log here, AsyncErrorLogger reports the domain exception.
+      // The infrastructure detail travels inside it.
+      throw FetchProductException(details: e.code, originalException: e, stackTrace: st);
+    }
+  }
+}
+```
+
+This `catch` propagates, so it does not log (see the AsyncErrorLogger rule above).
+
 ### Application — notifier side effect
 
 ```dart
-final _log = Logger('product.application');
-
 Future<void> deleteProduct(String id) async {
-  _log.d('[product][application] delete – id=$id');
+  final logger = ref.read(loggerServiceProvider);
+  logger.d('[product][application] delete – id=$id');
   state = const AsyncLoading();
   state = await AsyncValue.guard(() => ref.read(productRepositoryProvider).delete(id));
-  _log.i('[product][application] delete complete – id=$id');
+  logger.i('[product][application] delete complete – id=$id');
 }
 ```
 
 ### Presentation — user-triggered action
 
 ```dart
-final _log = Logger('product.presentation');
-
-void _onDeleteTapped(BuildContext context, String id) {
-  _log.d('[product][presentation] delete tapped – id=$id');
+void _onDeleteTapped(String id) {
+  ref.read(loggerServiceProvider).d('[product][presentation] delete tapped – id=$id');
   ref.read(productNotifierProvider.notifier).deleteProduct(id);
 }
 ```

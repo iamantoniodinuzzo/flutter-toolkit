@@ -20,7 +20,7 @@ three per-flavor `.env` files.
 
 It initially looked like `dart_defines.json` might have been an untested, ad-hoc invention specific to
 this skill, since no other skill in this toolkit references it and `flutter-flavors` explicitly disowns
-`.env`-per-flavor scaffolding (SKILL.md:377-378). Checking `skills/sentry-init/references/*.md`
+`.env`-per-flavor scaffolding (SKILL.md:381-383). Checking `skills/sentry-init/references/*.md`
 disproved that: every reference file carries `> Adapted from Engage-srl/pollicino_viewer —
 apps/tomcat_portal/ai_docs/sentry/<file>.md`, and the shipping commit (`3e15ba0`) describes the set as
 "battle-tested integration." `dart_defines.json` is prior art from a real shipped project, not a guess —
@@ -46,7 +46,7 @@ untouched and reports it as found — it never offers to migrate between convent
   skill's Phase 0.5 must say why in-line (this ADR's rationale), not just assert the priority order.
 - `sentry-init` remains the sole **owner** of DSN-source scaffolding in this toolkit. If a future skill
   (e.g. a dedicated env-var/secrets skill) takes over `.env`-per-flavor scaffolding project-wide, this
-  decision should be revisited — the boundary note in `flutter-flavors/SKILL.md:377-381` would also need
+  decision should be revisited — the boundary note in `flutter-flavors/SKILL.md:381-383` would also need
   updating at that point.
 - No migration path between conventions is ever offered by the skill. A project that wants to switch
   does so manually.

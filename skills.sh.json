@@ -14,7 +14,12 @@
     {
       "title": "Scaffolding & tooling",
       "description": "Feature scaffolding, codegen, navigation, monorepo, observability",
-      "skills": ["scaffold-feature", "flutter-analyze-targeted", "flutter-go-router", "flutter-melos-workspace", "sentry-init", "force-update-init", "asset-preload-init", "web-loader-init", "page-transitions-init"]
+      "skills": ["scaffold-feature", "flutter-analyze-targeted", "flutter-flavors", "flutter-go-router", "flutter-melos-workspace", "sentry-init", "force-update-init", "asset-preload-init", "web-loader-init", "page-transitions-init"]
+    },
+    {
+      "title": "Workflow & agent setup",
+      "description": "Issue kickoff, second opinions, retrospectives and agent-configuration audits",
+      "skills": ["dev-issue", "second-opinion", "retro", "tune-setup"]
     }
   ],
   "notGrouped": "bottom"

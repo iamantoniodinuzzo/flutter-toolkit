@@ -11,15 +11,16 @@ Short reference for adding a new feature following the project’s 4-tier clean 
 ```plaintext
 lib/src/features/[feature_name]/
 ├── domain/
-│   └── [entities, value objects, repository interfaces]
+│   ├── entities/        # entities, value objects (no serialization)
+│   ├── repositories/    # abstract repository interface
+│   └── exceptions/      # sealed feature exception hierarchy
 ├── data/
-│   └── repository/
-│       └── [concrete_repository].dart
-├── application/
-│   └── [services, use-cases].dart
+│   ├── models/          # fromMap / toMap / toEntity()
+│   └── repositories/    # concrete repository + its provider
+├── application/         # controllers (Notifier / AsyncNotifier); a service only when needed
 └── presentation/
-    ├── [screens, widgets]
-    └── [controllers, providers]
+    ├── screens/
+    └── widgets/
 ```
 
 - **Keep everything feature‑local** (no “god” folders).
@@ -27,9 +28,9 @@ lib/src/features/[feature_name]/
 
 ```plaintext
 ✓ feature_name_repository.dart
-✓ feature_name_service.dart
-✓ feature_name_screen.dart
+✓ feature_name_model.dart
 ✓ feature_name_controller.dart
+✓ feature_name_screen.dart
 ```
 
 ---
@@ -45,9 +46,9 @@ lib/src/features/[feature_name]/
 **Checklist**
 
 - [ ] Create feature directory structure.
-- [ ] Add domain model(s) with:
+- [ ] Add domain entities in `domain/entities/` with:
   - final fields
-  - `toMap()` / `fromMap()` (simple serialization)
+  - **no serialization** (`fromMap` / `toMap` / `fromJson` / `toJson` belong to the data model)
   - clear types for IDs (e.g. `UserId` instead of `String` when useful)
 - [ ] Keep validation inside domain types (not scattered in functions).
 
@@ -60,46 +61,67 @@ feature‑specific API.
 
 **What to create**
 
-1. **Concrete repository implementation** in `data/repository/`.
-2. **Optional abstract interface** in `domain/repository/` (only if you truly expect multiple implementations).
-3. **Feature‑specific exceptions**, following the exception‑handling patterns.
-4. **Repository provider** (Riverpod, code‑gen).
+1. **Abstract repository interface** in `domain/repositories/`. Always created.
+2. **Data model** in `data/models/`: `fromMap` / `toMap` and `toEntity()`.
+3. **Concrete repository implementation** in `data/repositories/`, implementing the interface.
+4. **Feature‑specific exceptions** in `domain/exceptions/`, following the exception‑handling patterns.
+5. **Repository provider** (Riverpod, code‑gen) returning the **interface** type.
 
 **Rules**
 
-- **Implicit Interfaces**: Every class in Dart defines an implicit interface. Abstract classes are often unnecessary boilerplate if you only have one implementation.
+- **Interface first**: the repository interface is part of the feature, not an optimization. Controllers
+  depend on the interface, tests mock it, and the provider returns it.
 - **No Leaky Abstractions**: Do not leak infrastructure types. Repositories must return Domain Entities or pure Dart types. **Never** return `DocumentSnapshot`, `Query`, or `FirebaseException` to the layers above.
 - Handle external errors in the repository, rethrow as domain exceptions.
 
-**Example – Repository + provider**
+**Example – Model, repository + provider**
 
 ```dart
-// lib/src/features/user_profile/data/repository/user_profile_repository.dart
+// lib/src/features/user_profile/domain/entities/user_profile.dart
+class UserProfile {
+  const UserProfile({required this.id, required this.name});
+  final String id;
+  final String name;
+}
 
+// lib/src/features/user_profile/data/models/user_profile_model.dart
+class UserProfileModel {
+  const UserProfileModel({required this.id, required this.name});
+
+  factory UserProfileModel.fromMap(Map<String, dynamic> map) =>
+      UserProfileModel(id: map['id'] as String, name: map['name'] as String);
+
+  final String id;
+  final String name;
+
+  Map<String, dynamic> toMap() => {'id': id, 'name': name};
+
+  UserProfile toEntity() => UserProfile(id: id, name: name);
+}
+
+// lib/src/features/user_profile/domain/repositories/user_profile_repository.dart
+abstract interface class UserProfileRepository {
+  Future<UserProfile> fetchProfile(String userId);
+}
+
+// lib/src/features/user_profile/data/repositories/user_profile_repository_impl.dart
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-part 'user_profile_repository.g.dart';
+part 'user_profile_repository_impl.g.dart';
 
-// Domain exceptions
-class ProfileNotFoundException implements Exception {}
-class UpdateProfileException implements Exception {
-  UpdateProfileException(this.message);
-  final String? message;
-}
-
-/// Concrete repository.
-class UserProfileRepository {
-  UserProfileRepository({required FirebaseFirestore firestore})
+class UserProfileRepositoryImpl implements UserProfileRepository {
+  UserProfileRepositoryImpl({required FirebaseFirestore firestore})
       : _firestore = firestore;
 
   final FirebaseFirestore _firestore;
 
+  @override
   Future<UserProfile> fetchProfile(String userId) async {
     try {
       final doc = await _firestore.collection('users').doc(userId).get();
-      if (!doc.exists) throw ProfileNotFoundException();
-      return UserProfile.fromMap(doc.data()!);
+      if (!doc.exists) throw const ProfileNotFoundException();
+      return UserProfileModel.fromMap(doc.data()!).toEntity();
     } on FirebaseException catch (e) {
       throw UpdateProfileException(e.message);
     }
@@ -107,30 +129,37 @@ class UserProfileRepository {
 }
 
 @riverpod
-UserProfileRepository userProfileRepository(UserProfileRepositoryRef ref) {
-  return UserProfileRepository(
+UserProfileRepository userProfileRepository(Ref ref) {
+  return UserProfileRepositoryImpl(
     firestore: ref.watch(firebaseFirestoreProvider),
   );
 }
 ```
 
+The exceptions used above (`ProfileNotFoundException`, `UpdateProfileException`) are subtypes of the
+feature's `sealed` exception, which extends the project's abstract `AppException`. See the
+exception‑handling patterns.
+
 ---
 
-## 4. Application Layer (Service) — **Mandatory for tomcat_portal**
+## 4. Application Layer (Controllers, optional Service)
 
-> **tomcat_portal rule**: every write operation goes through a `Service` class. The controller never calls the repository directly.
+**Controllers call repositories.** A controller is a `Notifier` / `AsyncNotifier` in `application/`. It reads
+the repository through its provider (`ref.read(userProfileRepositoryProvider)`) and exposes mutation
+methods that return `Future<void>`.
 
-**Responsibilities**
+**Introduce a `Service` only when logic spans repositories**, for example updating a profile and the auth
+record together, or logic shared by several controllers. One repository behind one controller needs no
+service.
+
+**Responsibilities of a service (when it exists)**
 
 - Orchestrate multiple repositories (e.g. profile + auth).
 - Centralize cross‑cutting concerns (logging, validation).
-- Expose clear methods for the UI (`updateUserProfile`, `loadProfilePage`).
+- Expose clear methods for the controllers (`updateUserProfile`, `loadProfilePage`).
 
-**Service interface (for testability)**
-
-Unlike repositories — where an abstract interface is optional when there is
-only one real implementation — **service classes benefit from an abstract
-interface** because controllers mock the service directly in unit tests.
+A service has an abstract interface for the same reason a repository does: controllers mock it in unit
+tests, and its provider returns the **interface** type.
 
 ```dart
 // application/feature_name_service.dart
@@ -141,22 +170,16 @@ abstract interface class FeatureNameService {
 }
 
 class FeatureNameServiceImpl implements FeatureNameService { ... }
-```
 
-The Riverpod provider returns the **interface** type; tests mock the interface:
-
-```dart
 class MockFeatureNameService extends Mock implements FeatureNameService {}
 ```
 
 **Checklist**
 
-- [ ] Create abstract interface class in `application/`.
-- [ ] Create `Impl` class implementing the interface.
-- [ ] Inject repositories + logger via providers.
-- [ ] Log operations with `[feature][service]` prefix.
-- [ ] Controller reads service via `ref.read()`, never the repo.
-- [ ] Provider returns the interface type.
+- [ ] Controller in `application/` reads the repository (or the service, when one exists) via `ref.read()`.
+- [ ] Inject the `LoggerService` through its provider (see `error-logging-contract.md`).
+- [ ] Log operations with the `[feature][layer]` prefix.
+- [ ] Providers return the interface type.
 
 ---
 
@@ -165,7 +188,7 @@ class MockFeatureNameService extends Mock implements FeatureNameService {}
 **Goals**
 
 - Observe state and render UI.
-- Handle user input via **Controllers** (using `AsyncNotifier` for async state).
+- Send user input to the controllers in `application/` (`AsyncNotifier` for async state).
 
 **Rules**
 
@@ -179,4 +202,4 @@ class MockFeatureNameService extends Mock implements FeatureNameService {}
 
 - Use `ProviderContainer` with overrides for repositories/services.
 - Test happy paths (success) and error paths (exceptions).
-- Mock concrete repositories directly if an abstract interface is missing.
+- Mock the abstract repository interface; every repository has one.
