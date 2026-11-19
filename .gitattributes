@@ -1,0 +1,4 @@
+# Markdown and Node scripts are LF in the working tree on every platform. The validator and the
+# agent's edits compare text, and CRLF checkouts (core.autocrlf=true on Windows) broke multi-line matches.
+*.md text eol=lf
+*.js text eol=lf

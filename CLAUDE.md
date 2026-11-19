@@ -6,7 +6,7 @@ Toolkit repo — application paths resolve from the **target Flutter project roo
 Load on demand:
 - [ai_docs/ARCHITECTURE.md](ai_docs/ARCHITECTURE.md) — repo structure, modules, dispatcher vs self-contained skills
 - [ai_docs/FLUTTER_RULES.md](ai_docs/FLUTTER_RULES.md) — Riverpod v3 / GoRouter / testing / logging / codegen rules
-- [ai_docs/GIT_WORKFLOW.md](ai_docs/GIT_WORKFLOW.md) — branch aliases, PR/issue commands
+- Before `git finish` or closing an issue: [ai_docs/GIT_WORKFLOW.md](ai_docs/GIT_WORKFLOW.md) — what finish pushes, why issues close by hand, branch aliases
 - [ai_docs/CONTRIBUTING.md](ai_docs/CONTRIBUTING.md) — adding skills, version bump, commit scopes, upstream rule docs
 
 ## graphify
