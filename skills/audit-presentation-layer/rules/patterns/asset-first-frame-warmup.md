@@ -1,4 +1,4 @@
-<!-- source: local (claude-flutter) -->
+<!-- source: local (flutter-toolkit) -->
 ## Asset first-frame warm-up (ASSET-01)
 
 **Goal:** Avoid one-to-two-frame pop-in of logos/icons on the first route.

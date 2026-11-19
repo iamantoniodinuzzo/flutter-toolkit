@@ -1,4 +1,4 @@
-<!-- source: local (claude-flutter) -->
+<!-- source: local (flutter-toolkit) -->
 ## Warm-up safety and effectiveness (ASSET-04)
 
 **Goal:** A warm-up must neither break startup nor silently miss.

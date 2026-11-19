@@ -4,6 +4,8 @@
 
 Accepted (wayfinder ticket #62, map #57). Amended by [ADR 0012](0012-retro-positive-loop.md): Q6 may
 now produce one evidence-backed proposal (decision 4 and the #64 consequence no longer hold).
+Amended by [ADR 0013](0013-retro-q2-q3-actions-and-closing-question.md): a closing step follows
+Q6 and `Ambiente`; the set stays six questions.
 
 ## Context
 

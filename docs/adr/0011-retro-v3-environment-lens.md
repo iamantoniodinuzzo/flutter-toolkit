@@ -3,7 +3,8 @@
 ## Status
 
 Accepted (wayfinder ticket #81, map #78). Supera in parte [0006](0006-retro-v2-skill-shape.md):
-solo la decisione 1.
+solo la decisione 1. Amended by [ADR 0015](0015-retro-proposal-shape-and-agents-md-handoff.md): the
+`global agents.md` signal now prints an explicit handoff to `tune-setup`; the invariant has no exception.
 
 ## Context
 

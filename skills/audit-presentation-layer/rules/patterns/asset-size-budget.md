@@ -1,4 +1,4 @@
-<!-- source: local (claude-flutter) -->
+<!-- source: local (flutter-toolkit) -->
 ## Asset size budget (ASSET-02)
 
 **Goal:** Catch raster assets far larger than they are ever displayed.

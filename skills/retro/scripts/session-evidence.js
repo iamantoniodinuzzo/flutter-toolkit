@@ -350,7 +350,7 @@ function firstLine(text, maxLen) {
 
 // Codex CLI versions whose rollout format was observed (research ticket #79); outside this
 // range the evidence is flagged, not trusted silently (ticket "Retro v3 su Codex").
-const CODEX_OBSERVED = { min: [0, 153, 4], max: [0, 165, 0] };
+const CODEX_OBSERVED = { min: [0, 153, 4], max: [0, 167, 0] };
 
 function readCodexMeta(raw) {
   for (const line of raw.split('\n')) {
@@ -673,6 +673,7 @@ function main() {
   let ambiente = null;
   let claimedFailed = new Set();
   let claimedChecks = new Set();
+  let claimedBy = new Map();
   if (!configAudit) {
     const sub = codex ? { st: lens.newState(), branches: [], roots: [] } : scanSubagents(transcriptPath);
     const subDenials = [...sub.st.denials].map((d) => {
@@ -686,6 +687,7 @@ function main() {
       ambiente = lens.evaluate(st, { excerpt: inputExcerpt, roots }, subDenials);
       claimedFailed = ambiente.claimedFailed;
       claimedChecks = ambiente.claimedChecks;
+      claimedBy = ambiente.claimedBy;
     }
     const editPaths = new Set(
       lens.successfulEdits(st, { mainOnly: false }).concat(lens.successfulEdits(sub.st, { mainOnly: false })).map((e) => e.file)
@@ -708,9 +710,15 @@ function main() {
   // claimed (each fact appears once, ticket "Dedup tra blocco Ambiente e Q1/Q5").
   const errorsByTool = new Map(); // "tool\0excerpt" -> {count, sidechain, sample, name, excerpt}
   let attributed = 0;
+  const attributedBy = new Map(); // section -> failed calls it claimed (#100)
   for (const [id, r] of st.results) {
     if (!r.isError) continue;
-    if (claimedFailed.has(id)) { attributed++; continue; }
+    if (claimedFailed.has(id)) {
+      attributed++;
+      const section = claimedBy.get(id);
+      if (section) attributedBy.set(section, (attributedBy.get(section) || 0) + 1);
+      continue;
+    }
     const u = st.uses.get(id);
     const name = u ? u.name : 'unknown';
     const excerpt = u ? inputExcerpt(u.input) : '';
@@ -781,7 +789,10 @@ function main() {
         `  ${rec.name} x${rec.count}${rec.sidechain ? ' [subagent]' : ''}${ran} → ${rec.sample}`
       );
     });
-  if (attributed) out.push(`attribuiti ad ambiente: ${attributed} (vedi blocco Ambiente)`);
+  if (attributed) {
+    const parts = lens.CLAIM_SECTIONS.filter((s) => attributedBy.get(s)).map((s) => `${s} ${attributedBy.get(s)}`);
+    out.push(`attribuiti ad ambiente: ${attributed} (${parts.length ? `${parts.join(', ')}; ` : ''}vedi blocco Ambiente)`);
+  }
   out.push('');
 
   const repeatedCmds = [...bashCommandCounts.entries()].filter(([, r]) => r.count > 1);

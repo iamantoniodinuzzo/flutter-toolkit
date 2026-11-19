@@ -1,4 +1,4 @@
-<!-- source: local (claude-flutter) -->
+<!-- source: local (flutter-toolkit) -->
 # Loader / cache matrix
 
 Each asset loader fills its **own** cache, so one generic `precacheAssets` helper does not fit all.

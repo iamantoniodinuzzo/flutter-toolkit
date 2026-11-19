@@ -2,7 +2,11 @@
 
 ## Status
 
-Accepted (wayfinder ticket #64, map #57)
+Accepted (wayfinder ticket #64, map #57). Amended by
+[ADR 0013](0013-retro-q2-q3-actions-and-closing-question.md): a destination "Issue nel repo del
+progetto" and a separate pool of at most 3 issue drafts; the cap of 3 for `Proposed` is unchanged.
+Amended by [ADR 0014](0014-tune-setup-surface-scope-and-memory-index.md): a `tune-setup` batch
+counts as one proposal in its cap of 5 and always waits for an ok.
 
 ## Context
 
@@ -13,7 +17,7 @@ auto-memory (auto-applied), `CLAUDE.md` of the target project (proposed), and a 
 full config-audit surface (`settings.json`, hooks, `agents/`, not just `CLAUDE.md`), new
 automation-target shapes (a slash command, a subagent — not just "a skill or hook"), and a
 destination that crosses a repository boundary entirely: an issue on
-`iamantoniodinuzzo/claude-flutter` itself, when the friction traces back to a toolkit skill
+`iamantoniodinuzzo/flutter-toolkit` itself, when the friction traces back to a toolkit skill
 rather than the target project retro/`tune-setup` are running in.
 
 ADR 0006 stated cross-repo ownership "always retro," reasoning that retro's every-task cadence
@@ -34,7 +38,7 @@ outside of.
 | Auto-memory topic file + `MEMORY.md` line | Default; unchanged from today | Auto-applied |
 | Config of the target project (`CLAUDE.md` / `.claude/settings.json` / hooks / `agents/`) | Permanent convention that should guide every future session, or a config surface ADR 0008 flagged as broken/stale | Proposed — awaits ok |
 | Automation spec (skill / hook / slash command / subagent) | Repeated pattern that should become reusable automation — generalizes the existing "skill / hook spec" row to also cover the two new shapes named in this ticket ("effective repeated prompt" → slash command, "recurring domain expertise" → subagent) | Proposed — awaits ok |
-| Cross-repo toolkit issue (`iamantoniodinuzzo/claude-flutter`) | Friction traces back to a toolkit skill itself, not the target project | Proposed — awaits ok |
+| Cross-repo toolkit issue (`iamantoniodinuzzo/flutter-toolkit`) | Friction traces back to a toolkit skill itself, not the target project | Proposed — awaits ok |
 
 The "config of the target project" row generalizes the old "`CLAUDE.md` del progetto" row —
 same approval tier, wider scope, aligned to ADR 0008's full audit surface. The "Automation
@@ -43,7 +47,7 @@ shapes rather than adding two more standalone rows — they share one approval t
 underlying judgment ("this pattern is worth turning into reusable automation"), so a single
 row stays truer to the table's existing shape than fragmenting it by artifact type.
 
-**2. Cross-repo issue mechanism: `gh issue create --repo iamantoniodinuzzo/claude-flutter`,
+**2. Cross-repo issue mechanism: `gh issue create --repo iamantoniodinuzzo/flutter-toolkit`,
 explicit repo flag.** Never inferred from the current directory's `git remote` — that remote
 points at the target project, not the toolkit, precisely because retro/`tune-setup` run
 *in* the target project. Always "Proposed — awaits ok": opening a public issue on a different

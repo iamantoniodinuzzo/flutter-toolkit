@@ -1,4 +1,4 @@
-<!-- source: local (claude-flutter) -->
+<!-- source: local (flutter-toolkit) -->
 ## Responsive Layout in Flutter – Complete Guide
 
 **Goal:** Understand why hard-coded sizes and `MediaQuery.size`-based branching

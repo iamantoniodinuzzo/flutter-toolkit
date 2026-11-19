@@ -32,6 +32,7 @@ test('SKILL.md sections appear in the decided order', () => {
     '## Passo 0',
     '## Le sei domande',
     '## Ambiente',
+    '## Domanda di chiusura',
     '## Ship handoff',
     '## Persistenza',
     '## Report finale',
@@ -108,6 +109,75 @@ test('Q6-to-proposal rule and the automation routing map are wired to evidence t
   for (const label of ['standardizzazione:', 'repeated user instructions:', 'ripetute in sessione', 'args identici']) {
     assert(scriptsSrc.includes(label), `scripts do not emit "${label}"`);
   }
+});
+
+test('Q2/Q3 actions, closing question and project-issue destination are wired (ADR 0013)', () => {
+  const questions = skill.slice(idx(skill, '## Le sei domande'), idx(skill, '## Ambiente'));
+  assert(questions.includes('**Azione (Q2, Q3)**'), 'Azione paragraph missing');
+  for (const value of ['`issue`', '`test`', '`doc`', '`memoria`', '`nessuna (<motivo>)`']) {
+    assert(questions.includes(value), `Azione value missing: ${value}`);
+  }
+
+  const closing = skill.slice(idx(skill, '## Domanda di chiusura'), idx(skill, '## Ship handoff'));
+  assert(
+    closing.includes('Is there anything else substantial that is worth saving for later from the context of this session?'),
+    'closing question is not verbatim',
+  );
+  assert(closing.includes('reddit.com/r/ClaudeCode/comments/1xjfize'), 'source link missing');
+  assert(closing.includes('attribuzione non verificata'), 'unverified-attribution note missing');
+  assert(closing.includes('Persistenza'), 'closing step does not point to Persistenza');
+
+  const persist = skill.slice(idx(skill, '## Persistenza'), idx(skill, '## Report finale'));
+  assert(/\| Issue nel repo del progetto \|.*\| Proposta — aspetta l'ok \|/.test(persist), 'project-issue row missing');
+  assert(persist.includes('non esegue `gh issue create`'), 'project-issue rule must forbid gh issue create');
+
+  const report = skill.slice(idx(skill, '## Report finale'), idx(skill, '## Anti-patterns'));
+  assert(report.includes('Issue da aprire') && report.includes('Azione:'), 'report format misses the new lines');
+  assert(report.includes('max 3'), 'issue pool cap missing');
+
+  const anti = skill.slice(idx(skill, '## Anti-patterns'));
+  assert(anti.includes('nel repo del progetto') && anti.includes('nessuna (<motivo>)'), 'anti-patterns not extended');
+});
+
+test('proposal shape rules and the agents-md handoff are wired (ADR 0015)', () => {
+  const persist = skill.slice(idx(skill, '## Persistenza'), idx(skill, '## Report finale'));
+  const shape = persist.slice(persist.indexOf('### Forma della proposta'));
+  assert(persist.includes('### Forma della proposta'), 'Forma della proposta missing inside Persistenza');
+  for (const needle of ['meccanic', 'hook', 'Puntatore prima del contenuto', '`prova:`', '`ripristino:`', 'references/writing-for-agents.md']) {
+    assert(shape.includes(needle), `Forma della proposta misses: ${needle}`);
+  }
+  assert(/\bconst AGENTS_MD_LIST_MAX\b/.test(scriptsSrc), 'AGENTS_MD_LIST_MAX not defined in scripts/');
+  const lens = read('references', 'environment-lens.md');
+  assert(lens.includes('--surface memory-index') && lens.includes('--surface istruzioni'), 'lens misses the handoff commands');
+  assert(scriptsSrc.includes('handoff: tune-setup --surface'), 'script does not emit the handoff line');
+  const anti = skill.slice(idx(skill, '## Anti-patterns'));
+  assert(anti.includes('vincolo meccanico') && anti.includes('handoff a `tune-setup`'), 'anti-patterns not extended');
+});
+
+test('ambiente proposal shape: guard / pointer (#105)', () => {
+  const lens = read('references', 'environment-lens.md');
+  const section = lens.slice(idx(lens, '## Forma della proposta ambiente'), idx(lens, '## Falsi positivi'));
+  for (const needle of ['Forma di comando', 'Fatto mancante', 'PreToolUse', '`guard`', '`pointer`', 'mattpocock/skills', 'Forma della proposta']) {
+    assert(section.includes(needle), `lens section misses: ${needle}`);
+  }
+  const report = skill.slice(idx(skill, '## Report finale'), idx(skill, '## Anti-patterns'));
+  assert(report.includes('· guard]') && report.includes('· pointer]'), 'report template misses the guard/pointer tag');
+  assert(report.includes('`· guard` o `· pointer`') && report.includes('references/environment-lens.md'), 'categories do not point to the lens');
+});
+
+test('Q1-Q4 and Q6 are not applicable for any non-current transcript, whatever flag selects it (#99)', () => {
+  const when = skill.slice(idx(skill, '## Quando lanciarla'), idx(skill, '## Compatibilita della sessione'));
+  for (const needle of ['--transcript', '--session', 'memoria del lavoro', 'non applicabile', 'Q1', 'Q2', 'Q3', 'Q4', 'Q6', 'identità con la conversazione corrente']) {
+    assert(when.includes(needle), `"Quando lanciarla" misses: ${needle}`);
+  }
+});
+
+test('Passo 0 shows the --session/--transcript forms and where diff: reads its cwd (#98)', () => {
+  const passo0 = skill.slice(idx(skill, '## Passo 0'), idx(skill, '## Le sei domande'));
+  for (const needle of ['--transcript <path>', '--session <id>', 'cwd della sessione assente', 'registrato nel transcript']) {
+    assert(passo0.includes(needle), `Passo 0 misses: ${needle}`);
+  }
+  assert(scriptsSrc.includes('cwd della sessione assente'), 'scripts do not emit "cwd della sessione assente"');
 });
 
 test('the writing reference carries attribution, a 40-60 line body and the MIT text', () => {

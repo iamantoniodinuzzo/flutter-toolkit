@@ -1,4 +1,4 @@
-<!-- source: local (claude-flutter) -->
+<!-- source: local (flutter-toolkit) -->
 # Widget Extraction, Cohesion & Coupling in the Presentation Layer
 
 **Goal:** Widgets that are small, single-purpose, and depend only on what they
