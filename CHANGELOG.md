@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0]
+
+### Added
+
+- `dev-issue`: new skill that starts development of a GitHub issue in any Flutter/Dart git-flow project.
+  It reads the project's own conventions (recorded in `docs/agents/dev-issue.md` on first use), runs parallel
+  recon of issue, epic and code, asks decision-tree questions with recommendations, plans, creates the branch
+  only after approval, gates the merge locally, and reports evidence per acceptance criterion. (#40)
+
+### Changed
+
+- `retro`: references to the old `issue-dev` skill name now point to `dev-issue`. (#40)
+
 ## [4.1.0] - 2026-11-12
 
 ### Added
