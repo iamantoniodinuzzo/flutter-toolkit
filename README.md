@@ -72,7 +72,7 @@ codex plugin marketplace add iamantoniodinuzzo/flutter-toolkit --ref v3.11.0
 codex plugin add flutter-toolkit@flutter-toolkit
 ```
 
-The native Codex manifest distributes the 21 active skills from the same catalog. The marketplace follows the repository revision you install; use `--ref v<version>` on `marketplace add` to pin a published release. For editable files instead, use `npx skills add iamantoniodinuzzo/flutter-toolkit -a codex`.
+The native Codex manifest distributes the 22 active skills from the same catalog. The marketplace follows the repository revision you install; use `--ref v<version>` on `marketplace add` to pin a published release. For editable files instead, use `npx skills add iamantoniodinuzzo/flutter-toolkit -a codex`.
 
 Install one channel per agent to avoid duplicate skills.
 
@@ -154,6 +154,7 @@ The table uses Claude plugin slash commands (`/flutter-toolkit:<name>`). In Code
 | `page-transitions-init` | `/flutter-toolkit:page-transitions-init` or "fix page transitions" | Generate an adaptive `PageTransitionsTheme` (native on installed Android/iOS, instant on web/desktop, `kIsWeb`-gated), wire it into every light and dark theme (incl. `FlexThemeData`), and optionally migrate a blanket `NoTransitionPage` router helper to `builder:`; AUDIT mode reports ROUTER-03 mismatches |
 | `web-loader-init` | `/flutter-toolkit:web-loader-init` or "flutter web blank page" | Add a boot progress loader to a Flutter web app: accessible overlay in `web/index.html`, `style.css` (light/dark, reduced-motion) and an IIFE-wrapped `flutter_bootstrap.js` that removes the loader on `flutter-first-frame` and emits `serviceWorkerSettings` only when the PWA strategy allows it; AUDIT mode checks an existing loader (`WEB-02`) |
 | `second-opinion` | "give me a second opinion" | Independent Flutter/Riverpod review via Gemini (default), Codex, or Claude CLI; asks before changing provider |
+| `dev-issue` | `/flutter-toolkit:dev-issue <n>` or "start working on issue #N" | Start development of a GitHub issue on git-flow: reads the project's own conventions and keeps them in `docs/agents/dev-issue.md` (facts + lessons, created through the first plan), parallel recon, mismatch detection, decision-tree Q&A in rounds with recommendations, a plan, branch only after approval, local gate (`tool/check.dart`) before `git finish`, evidence per acceptance criterion. Requires the git-flow aliases and `gh` |
 | `retro` | `/retro` or "retrospettiva" / "self-audit" | End-of-task self-audit: extracts verifiable evidence (tool errors, repeated commands, a per-branch session diff, transcript-only environment signals) from the session transcript, answers 6 hard questions backed by it, persists learnings to authorized native memory with dedup, or reports them when memory is unavailable, flags unintegrated git work, proposes fixes and environment improvements — Flutter-aware when the transcript shows Flutter work, generic otherwise |
 | `tune-setup` | `/tune-setup` or "ottimizza il setup" / "audit config" | On-demand config & workflow audit — the current agent's instructions, settings, hooks, and agents, skill-trigger-miss — cross-referenced against transcript evidence (repeated hook injections, denials); proposes concrete config fixes. Never automatic — generic, not Flutter-specific |
 

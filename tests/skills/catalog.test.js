@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { validate } = require('../../scripts/validate-skills.js');
 test('catalog distributes active skills with valid resources and invocation policies', () => {
-  assert.deepEqual(validate(), { total: 22, active: 21 });
+  assert.deepEqual(validate(), { total: 23, active: 22 });
 });
 
 test('partial catalogs identify missing shared dependencies', t => {
