@@ -1,6 +1,6 @@
 ---
 name: retro
-description: "End-of-task retrospective. Gathers verifiable evidence from the session transcript, answers six hard self-audit questions (least confident, what user is missing, most likely 3-month failure, unstated assumptions, smoother session, what worked well — backed by that evidence), turns recurring patterns and cross-session repeated instructions into standardization proposals, auto-persists reusable learnings to memory, flags unintegrated work, reads transcript-only environment signals to propose environment fixes, and proposes concrete fixes. Use when the user says \"/retro\", \"retrospettiva\", \"cosa mi sfugge\", \"self-audit\", after completing a significant deliverable (plan, milestone, feature, migration), at the end of `issue-dev` after merge, or before the session's context is about to be compacted."
+description: "End-of-task retrospective. Gathers verifiable evidence from the session transcript, answers six hard self-audit questions (least confident, what user is missing, most likely 3-month failure, unstated assumptions, smoother session, what worked well — backed by that evidence), turns recurring patterns and cross-session repeated instructions into standardization proposals, auto-persists reusable learnings to memory, flags unintegrated work, reads transcript-only environment signals to propose environment fixes, and proposes concrete fixes. Use when the user says \"/retro\", \"retrospettiva\", \"cosa mi sfugge\", \"self-audit\", after completing a significant deliverable (plan, milestone, feature, migration), at the end of `dev-issue` after merge, or before the session's context is about to be compacted."
 user-invocable: true
 ---
 
@@ -15,7 +15,7 @@ Answer in the conversation language. Be honest, specific, non-defensive. No prai
 ## Quando lanciarla
 
 - A fine sessione, **prima** che il contesto venga compattato — dopo la compattazione Q5 lavora su un riassunto lossy invece che sui fatti.
-- A fine `issue-dev`, dopo il merge in `develop`.
+- A fine `dev-issue`, dopo il merge in `develop`.
 - Su richiesta esplicita ("/retro", "retrospettiva", "cosa mi sfugge", "self-audit").
 
 Se la sessione è **già stata compattata** quando parte la retro: dichiaralo apertamente nella risposta e limita Q5 a ciò che il Passo 0 conferma dal transcript — non riempire con ricordi plausibili del riassunto.
@@ -109,7 +109,7 @@ Rispondi nella lingua della conversazione, solo con ciò che non sta già in `Ap
 
 Dal blocco `diff:` e dall'output di `git status`/branch del Passo 0, con git in sola lettura:
 
-- Ogni branch ATTRIBUITO o PARZIALE non integrato → **finding**: `lavoro non integrato: <branch> (+N commit, pushato sì/no)` — usa `git-workflow` / `issue-dev` per commit, merge, chiusura issue. «Integrato» = commit contenuti in `develop` se esiste, altrimenti in `main`/`master` (non `origin/HEAD`: in git-flow punta al ramo di release); modifiche non committate non sono integrate (`+0 commit`).
+- Ogni branch ATTRIBUITO o PARZIALE non integrato → **finding**: `lavoro non integrato: <branch> (+N commit, pushato sì/no)` — usa `git-workflow` / `dev-issue` per commit, merge, chiusura issue. «Integrato» = commit contenuti in `develop` se esiste, altrimenti in `main`/`master` (non `origin/HEAD`: in git-flow punta al ramo di release); modifiche non committate non sono integrate (`+0 commit`).
 - Finding solo per ATTRIBUITO/PARZIALE. NON ATTRIBUIBILE e NON RICAVABILE: nessun finding, una riga neutra («non valutabile»). HEAD corrente fuori dai branch della sessione: riga neutra «non della sessione, non valutato».
 - Working tree sporco: finding solo per i file presenti anche negli edit della sessione, gli altri in una riga di riepilogo.
 - Nessuna esenzione per nome di branch (`research/*` inclusi): se la sessione ci ha lavorato e il lavoro non è integrato, il finding scatta; decide l'utente se scartarlo.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dev Issue"
+  short_description: "Flutter toolkit: start work on an issue"
+  default_prompt: "Use $dev-issue to start development of the given GitHub issue."

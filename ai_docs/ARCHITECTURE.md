@@ -12,7 +12,7 @@ This is a **toolkit repo** — the actual Flutter app lives elsewhere (e.g. `app
 |---|---|
 | `agents/` | Custom Claude Code subagent definitions (`.md` with frontmatter) |
 | `skills/` | Shared skills invoked through the current host agent |
-| `.codex-plugin/` | Native Codex manifest with the 21 active skill directories |
+| `.codex-plugin/` | Native Codex manifest with the 22 active skill directories |
 | `.agents/plugins/` | Native Codex marketplace pointing to this repository root |
 | `.claude-plugin/` | Claude Code plugin manifest (`marketplace.json`, `plugin.json`) |
 | `ai_docs/` | Architecture, rules, and contributor docs (loaded on demand) |
@@ -24,7 +24,7 @@ flowchart LR
     subgraph Repo["flutter-toolkit toolkit"]
         plugin[".claude-plugin/\nmarketplace.json + plugin.json"]
         agents["agents/\nriverpod-reviewer\nprompt-engineer"]
-        skills["skills/\nscaffold-feature · unit-test\nflutter-analyze-targeted · flutter-go-router\nflutter-melos-workspace · generate-widget-tests\nmaestro-screenshot-flow · audit-presentation-layer\naudit-domain-layer · audit-data-layer\naudit-application-layer · audit-feature\nsentry-init · flutter-flavors · second-opinion\nretro · tune-setup · force-update-init
+        skills["skills/\nscaffold-feature · unit-test\nflutter-analyze-targeted · flutter-go-router\nflutter-melos-workspace · generate-widget-tests\nmaestro-screenshot-flow · audit-presentation-layer\naudit-domain-layer · audit-data-layer\naudit-application-layer · audit-feature\nsentry-init · flutter-flavors · second-opinion\nretro · tune-setup · dev-issue · force-update-init
 asset-preload-init · web-loader-init · page-transitions-init"]
         aidocs["ai_docs/\nARCHITECTURE · FLUTTER_RULES\nGIT_WORKFLOW · CONTRIBUTING"]
     end
@@ -62,6 +62,7 @@ asset-preload-init · web-loader-init · page-transitions-init"]
 | `page-transitions-init` | Generate an adaptive `PageTransitionsTheme` (Android zoom / iOS Cupertino, instant on web/desktop), wire it into every light and dark theme, opt-in router migration off the `NoTransitionPage` helper; AUDIT mode maps to `ROUTER-03` in `audit-presentation-layer` |
 | `web-loader-init` | Scaffold a Flutter web boot loader (overlay + staged progress bar, no Dart): patches `web/index.html`, writes `style.css` and an IIFE-wrapped `flutter_bootstrap.js` that removes the loader on `flutter-first-frame`, conditional `serviceWorkerSettings`; AUDIT mode checks an existing loader against `WEB-02` in `audit-presentation-layer` |
 | `second-opinion` | Independent architecture review through Gemini, Codex, or Claude CLI |
+| `dev-issue` | Start work on a GitHub issue on git-flow: project-agnostic; conventions are read from the target project and remembered in its own `docs/agents/dev-issue.md` (never in the skill directory, which a plugin update replaces); recon, mismatch detection, decision-tree Q&A in rounds, plan, branch after approval, `tool/check.dart` gate before `git finish` |
 | `retro` | End-of-task self-audit: reads session transcript for verifiable friction evidence (`scripts/session-evidence.{sh,ps1}`): tool errors, repeated commands, a per-branch session `diff:` and an `ambiente:` block of transcript-only environment signals (never reads configuration files, ADR 0011) and a `standardizzazione:` block (model `Skill` calls, instructions repeated across sessions of the same project dir; ADR 0012). Answers 6 hard questions backed by it, with Q6 able to propose one standardization, persists learnings to authorized native memory with dedup, or retains them in the report, flags unintegrated git work, proposes fixes and environment improvements (Flutter-aware when the transcript shows Flutter work, generic otherwise); the lens signals live in `references/environment-lens.md` |
 | `tune-setup` | On-demand config & workflow audit: the current agent's instructions, settings, supported hooks and agents, and observable skill-trigger evidence, backed by `retro`'s script extended with an opt-in `--config-audit` flag; proposes config fixes, never runs automatically (generic, not Flutter-specific) |
 

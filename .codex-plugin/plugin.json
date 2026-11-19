@@ -9,6 +9,7 @@
     "./skills/audit-domain-layer",
     "./skills/audit-feature",
     "./skills/audit-presentation-layer",
+    "./skills/dev-issue",
     "./skills/flutter-analyze-targeted",
     "./skills/flutter-flavors",
     "./skills/flutter-go-router",
