@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "skills": {
+    "dev-issue": {
+      "source": "iamantoniodinuzzo/flutter-toolkit",
+      "commit": "bd6f841e58c9e183ddf63657e3ae9883d586269f",
+      "sourceType": "github",
+      "skillPath": "skills/dev-issue/SKILL.md",
+      "computedHash": "0e1a5323a064ee9962401bedd255cb83863cd41815e2f280ae59bd60d3830112"
+    }
+  }
+}
